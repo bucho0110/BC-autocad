@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """HWLM 하천 횡단 홍수위 표시 일괄 — 엑셀 [측점, H.W.L, S.W.L(선택), 여유고(선택)]를 횡단면마다 표기.
 
 단면은 견본 한 단면으로 찾고(skills/common/xsec.py), 측점은 누가거리 소수 4자리로 맞춘다(구조물 인접 0.0005km 단면 보존).

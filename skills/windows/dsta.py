@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """DSTA 선형에 측점 쓰기 — 간격마다 측점 선(눈금)·원·측점 문자. 교차선 위치, 엑셀 측점 목록도.
 
 거리 계산은 파이썬, 점·진행 각도는 LISP(vlax-curve)에서 받아 다시 LISP로 그린다.

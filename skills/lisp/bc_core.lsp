@@ -1,3 +1,4 @@
+;;; Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 ;;; bc_core.lsp — 스킬 명령 공통 함수 (UTF-8)
 ;;; AutoCAD 시작 때 bc_autocad.lsp가 (load)하고, MCP·창은 한 줄 사본을 eval한다.
 ;;; 전역 *bc-root*(패키지 폴더), *bc-pyw*(pythonw.exe)는 불러오는 쪽이 정한다.

@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """BC AutoCAD MCP 설치 — 이 폴더를 어느 PC에 복사해도 이것 하나로 맞춘다.
 
     python install\\install.py [--venv] [--claude] [--antigravity] [--codex] [--acad] [--all]

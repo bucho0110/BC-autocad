@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """결함 고침 시험(실제 AutoCAD 필요) — 새 도면에서 MCP 도구로.
 
 실행: <python> -X utf8 tests\test_fixes_live.py   끝에 "FAIL: []"이면 통과.

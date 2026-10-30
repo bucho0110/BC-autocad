@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """좌표 공통: LISP 덤프 해석, 토목/수학 좌표, 정렬, 측점 문자 해석."""
 
 import re

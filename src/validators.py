@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """입력 검사 — 도구 인자가 AutoCAD에 닿기 전에 걸러 낸다(순수 파이썬, COM 없음).
 
 LISP 소스는 한 번 토막(_lisp_tokens)으로 나눠 두고, 괄호 검사·금지 함수 검사·한 줄 만들기가

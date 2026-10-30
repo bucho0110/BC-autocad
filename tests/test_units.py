@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """AutoCAD 없이 도는 계산 시험(측점·삼각망·DDGP 계획선·CSAR 배치).
 
 실행: <python> -X utf8 tests\\test_units.py   끝에 "FAIL: []"이면 통과.

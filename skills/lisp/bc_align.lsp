@@ -1,3 +1,4 @@
+;;; Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 ;;; bc_align.lsp — 선형(중심선)·측점 명령 (DCP DCEN GST STT CST NUST MIP)
 ;;; 측점 표기
 ;;;  - Station: 누가거리 1250.5 → "1+250.5" (km + m). 0+000 형식 유지 옵션.

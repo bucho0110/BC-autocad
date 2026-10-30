@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """BC_TOOL 표준 아이콘(BUCHO_B_Icon.ico, Base64 내재화). 다중 플롯 원본에서 스크립트로 옮겼다."""
 
 ICON_B64 = (

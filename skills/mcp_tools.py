@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """MCP에서 스킬 명령을 부르는 통로.
 
 - skill_list: 명령 목록

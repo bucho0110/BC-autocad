@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """고친 결함 되풀이 확인 1(스킬 코드, 실제 AutoCAD 필요) — MCP stdio, 새 시험 도면.
 
 실행: <python> -X utf8 tests\\test_regression_live.py   끝에 "FAIL: []"이면 통과.

@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """AutoCAD용 MCP 서버(한글판). AutoCAD 2023에서 시험.
 
 만든 사람: BUCHO. 라이선스는 패키지의 LICENSE(BUCHO 무료 공개 라이선스).

@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """스킬 명령 목록 — AutoCAD 명령 이름, 설명, 종류, 설정 항목의 단일 원본.
 
 종류

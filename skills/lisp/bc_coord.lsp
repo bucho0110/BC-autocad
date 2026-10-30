@@ -1,3 +1,4 @@
+;;; Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 ;;; bc_coord.lsp — 좌표 명령 (XY ZBC WCD) + 수정 XYB
 ;;; 토목 좌표: X = CAD의 Y, Y = CAD의 X. 수학 좌표: CAD 그대로.
 

@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """HWLI 기본설계 값으로 실시설계 측점 값 보간.
 
 기본설계 선형 위의 측점별 값(엑셀: [측점, 값1, 값2, …] — 계획홍수위·제방고 등)을,

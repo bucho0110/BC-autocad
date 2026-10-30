@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """
 CAD Multi Plotter (다중 플롯 유틸리티) - BC.0.2.0 (MCP 패키지 버전과 같게)
 =========================================================

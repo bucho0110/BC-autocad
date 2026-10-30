@@ -1,3 +1,4 @@
+;;; Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 ;;; bc_00_guard.lsp — 먼저 있던 같은 이름 명령 기억 (install/build_lisp.py가 만든 파일, 직접 고치지 말 것)
 ;;; 우리 명령을 정의하기 전에, 같은 이름을 이미 쓰던 다른 리습 명령을 기억해 둔다.
 (setq bc:*names* (quote ("FE" "FW" "FEL" "CEE" "GEL" "SLEL" "IEL" "FPEL" "DTIN" "XY" "ZBC" "WCD" "CEX" "RCE" "CIM" "DCP" "DCEN" "DSTA" "STT" "GST" "DIBC" "CST" "NUST" "MIP" "HWLI" "DSLO" "NSLO" "DFB" "SLL" "SLT" "CSS" "CUT" "DRRE" "DCEM" "DDGP" "RCSE" "CSAR" "HWLM" "XYB" "MPL" "MPLOT")))

@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """DRRE 호안 전개도 — 측점별 호안 경사·길이(높이)·밑다짐으로 전개도와 수량표를 그린다(곡선부 연장 보정).
 
 1) 양식 만들기: 선형(LWPOLYLINE)을 고르면 측점 간격마다 + 곡선 BC·EC(반지름 R, 왼쪽 곡선 +/오른쪽 −) 행을 엑셀에 쓴다.

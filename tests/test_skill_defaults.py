@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """설정 기본값 대조(실제 AutoCAD 필요): skills/registry.py 와 skills/lisp/*.lsp 의 기본값이 같은지. 활성 도면이 Drawing*일 때만 돈다."""
 import sys
 import os

@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """스킬 시험(실제 AutoCAD 필요) — MCP stdio로 서버를 띄워 새 시험 도면에서 skill_run을 전부 부른다.
 
 실행: <python> -X utf8 tests\\test_skills_live.py [출력폴더]

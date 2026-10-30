@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """스킬 LISP 라이브러리(skills/lisp/*.lsp)를 MCP·창에서 쓸 수 있게 한 줄 파일로 만든다.
 
 AutoCAD 명령(FE·XY…)은 시작 시 (load)로 원본 .lsp를 불러 정의된다(install이 만든 bc_autocad.lsp).

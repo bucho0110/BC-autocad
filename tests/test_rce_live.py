@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """RCE 순번 좌표 내보내기 시험(실제 AutoCAD·엑셀 필요). 활성 도면이 Drawing*일 때만 돈다.
 
 사람이 점을 찍는 부분(getpoint)만 정해 둔 점으로 바꾸고, 창의 실행 흐름(run)을 그대로 돌린다.

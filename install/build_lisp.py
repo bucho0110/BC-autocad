@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """개발용: registry로 skills/lisp/bc_windows.lsp·bc_00_guard.lsp·bc_zz_alias.lsp를 만든다(명령을 더하거나 고친 뒤 실행).
 
 창 명령(kind=window)은 AutoCAD에서 치면 창을 띄운다. 도움말 명령 BCHELP도 여기서 만든다.
@@ -17,11 +18,12 @@ sys.dont_write_bytecode = True
 from skills import registry  # noqa: E402
 
 OUT = os.path.join(ROOT, "skills", "lisp", "bc_windows.lsp")
+COPYRIGHT = ";;; Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)"
 ALIASES = {"MPL": ["MPLOT"]}
 
 
 def main():
-    lines = [";;; bc_windows.lsp — 창 명령과 도움말 (install/build_lisp.py가 만든 파일, 직접 고치지 말 것)", ""]
+    lines = [COPYRIGHT, ";;; bc_windows.lsp — 창 명령과 도움말 (install/build_lisp.py가 만든 파일, 직접 고치지 말 것)", ""]
     for cmd, info in registry.COMMANDS.items():
         if info["kind"] != "window":
             continue
@@ -65,7 +67,7 @@ def write_guard():
     지난번에 우리가 만든 것(bc:fn-이름과 같은 함수, 짧은 이름 감싸개)은 기억하지 않는다."""
     lits = " ".join('"%s"' % c for c in _names())
     cmds = " ".join('"%s"' % c for c in registry.COMMANDS)
-    body = [";;; bc_00_guard.lsp — 먼저 있던 같은 이름 명령 기억 (install/build_lisp.py가 만든 파일, 직접 고치지 말 것)",
+    body = [COPYRIGHT, ";;; bc_00_guard.lsp — 먼저 있던 같은 이름 명령 기억 (install/build_lisp.py가 만든 파일, 직접 고치지 말 것)",
             ";;; 우리 명령을 정의하기 전에, 같은 이름을 이미 쓰던 다른 리습 명령을 기억해 둔다.",
             "(setq bc:*names* (quote (%s)))" % lits,
             "(setq bc:*cmds* (quote (%s)))" % cmds,
@@ -90,7 +92,7 @@ def write_alias():
       리습 명령은 같은 이름의 단축키(acad.pgp)보다 먼저 실행되므로, 켤 때 창이 bc:short-conflicts로 겹침을 경고한다.
     MCP(skill_run)는 명령 이름을 거치지 않으므로 영향이 없다."""
     extra = " ".join('("%s" %s)' % (c, " ".join('"%s"' % a for a in al)) for c, al in ALIASES.items())
-    body = [";;; bc_zz_alias.lsp — BC 이름(BCFE…)과 짧은 이름(FE…) (install/build_lisp.py가 만든 파일, 직접 고치지 말 것)",
+    body = [COPYRIGHT, ";;; bc_zz_alias.lsp — BC 이름(BCFE…)과 짧은 이름(FE…) (install/build_lisp.py가 만든 파일, 직접 고치지 말 것)",
             ";;; 기본은 BC 이름만. 짧은 이름은 BCHELP 창에서 체크한 명령만 켠다(모두 끄기: BCOFF).",
             "(setq bc:*short-extra* (quote (%s)))" % extra,
             ";; 단축키 파일의 이름 목록. 주석·빈 줄과 이름 글자(영문·숫자·_·-)가 아닌 것(파일 앞 BOM 등)은 뺀다",

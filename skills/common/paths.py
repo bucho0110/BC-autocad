@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """스킬 공통 경로. 어느 PC에 복사해도 돌도록 위치는 모두 이 파일 자신에서 계산한다.
 
 - ROOT: MCP 패키지 최상위(src·skills·install이 있는 폴더)

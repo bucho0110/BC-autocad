@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """FPEL 종단 여러 EL 찾아 표기 — 엑셀 [측점(누가거리), 찾을 EL, 표기1, 표기2]로 종단도 위 점을 찾아 표기.
 
 종단 시작점(도면 점)과 그 점의 EL을 기준으로

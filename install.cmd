@@ -1,4 +1,5 @@
 @echo off
+rem Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 chcp 65001 >nul
 rem BC AutoCAD MCP 설치 — 더블클릭으로 실행. Python은 배포하지 않으므로 먼저 직접 설치한다.
 where python >nul 2>nul

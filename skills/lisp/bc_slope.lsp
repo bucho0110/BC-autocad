@@ -1,3 +1,4 @@
+;;; Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 ;;; bc_slope.lsp — 제방·사면 명령 (DSLO NSLO DFB SLL SLT CSS CUT)
 ;;; 사면 표시(평면): 긴 선(주 표시)은 사면 상단에서 하단까지, 짧은 선(보조 표시)은 상단 쪽에서 짧게.
 ;;;   쌓기: 처음 고른 선(안쪽, 둑마루·법견)이 상단. 깎기: 나중 고른 선(바깥쪽)이 상단.

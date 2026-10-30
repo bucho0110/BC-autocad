@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """스킬 4단계(하천 횡단) 시험(실제 AutoCAD 필요) — 가짜 횡단면 3개를 만들고 MCP skill_run.
 
 실행: <python> -X utf8 tests\\test_skills4_live.py [출력폴더]   끝에 "FAIL: []"이면 통과.

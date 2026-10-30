@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """DTIN 삼각망 그리기 — Z가 있는 점·블록·선 정점(또는 EL 문자)으로 들로네 삼각망(3D면)을 만든다.
 
 triangulate()는 표준 라이브러리만 쓰는 Bowyer-Watson이다(점 수천 개까지 수 초).

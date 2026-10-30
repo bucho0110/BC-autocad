@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """스킬 창 실행기: pythonw launch.py <명령>
 
 AutoCAD 명령(bc_autocad.lsp의 startapp)과 MCP(open_skill)가 이 파일로 창을 띄운다.

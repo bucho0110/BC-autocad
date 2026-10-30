@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """CIM 좌표 가져오기 — 엑셀 선택 범위나 텍스트 파일의 좌표로 폴리선·점·번호·Z 문자·블록을 그린다.
 
 build_lisp()는 창 없이도 쓴다(MCP run_skill).

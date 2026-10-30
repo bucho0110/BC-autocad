@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """스킬 창 공통 부품 — BC_TOOL 표준(작업표시줄 아이콘·AppID), 어두운 색, 설정 입력 폼.
 
 창마다 AppUserModelID를 다르게 해 작업표시줄에서 섞이지 않게 한다.

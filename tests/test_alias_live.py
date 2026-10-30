@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """BC 이름(BCFE…)과 짧은 이름(FE…) 켜고 끄기 시험(실제 AutoCAD 필요). 활성 도면이 Drawing*일 때만 돈다.
 
 기본은 BC 이름만, 짧은 이름은 설정 파일(shortnames.txt)에 적힌 명령만. 시험 동안 설정 파일을 바꾸고 끝에 되돌린다.

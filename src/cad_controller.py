@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """AutoCAD COM 제어 계층(AutoCAD 2023에서 실측).
 
 - 모든 COM 호출은 전용 STA 스레드 하나(ComWorker)에서 차례로 실행한다.

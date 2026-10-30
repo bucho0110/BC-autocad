@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """정밀 기하 일괄 조회·XREF 조회·배치/뷰포트 조회(읽기 전용).
 
 LISP로 한 번에 읽어 탭 구분 줄로 받는다. 좌표는 모두 WCS [x, y, z]로 바꿔 돌려준다

@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """횡단면 찾기 — 도면에 늘어선 하천 횡단면을 한 단면 견본으로 모두 찾는다.
 
 견본(spec): 사용자가 단면 하나에서 고른 것

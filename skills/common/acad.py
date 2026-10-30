@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """스킬 창이 AutoCAD와 이야기하는 통로. MCP 본체(src)의 재시도 감싸개와 LISP 실행기를 그대로 쓴다.
 
 - 창 프로세스는 MCP와 다른 프로세스다. COM 연결도 따로 맺는다.

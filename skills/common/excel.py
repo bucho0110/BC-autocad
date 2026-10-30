@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """켜져 있는 엑셀과 주고받기(COM). 엑셀을 새로 켜지 않는다 — 사람이 보고 있는 엑셀에 쓴다."""
 
 import re

@@ -1,3 +1,4 @@
+;;; Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 ;;; bc_zz_alias.lsp — BC 이름(BCFE…)과 짧은 이름(FE…) (install/build_lisp.py가 만든 파일, 직접 고치지 말 것)
 ;;; 기본은 BC 이름만. 짧은 이름은 BCHELP 창에서 체크한 명령만 켠다(모두 끄기: BCOFF).
 (setq bc:*short-extra* (quote (("MPL" "MPLOT"))))

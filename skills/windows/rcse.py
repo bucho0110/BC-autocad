@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """RCSE 하천 평면 대횡단 — 횡단면도의 지반 EL을 평면 선형의 측점 수직선 위에 EL 간격마다 문자로 옮겨 쓴다.
 
 횡단과 선형이 같은 도면에 있을 때. 단면은 견본으로 찾고(skills/common/xsec.py), 측점(누가거리)으로 선형 위 위치를 정한다.

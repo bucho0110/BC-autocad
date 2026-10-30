@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """RCE 순번 좌표 내보내기 — 점을 찍을 때마다 엑셀에 [순번, X, Y(, Z)]를 한 줄씩 쌓고 도면에 순번을 쓴다."""
 
 import tkinter as tk

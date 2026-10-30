@@ -1,3 +1,4 @@
+;;; Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 ;;; bc_el.lsp — EL 명령 (FE FW FEL CEE GEL SLEL IEL)
 ;;; 공통 규칙
 ;;;  - 축척 1000 = m 도면(1m = 도면 1), 축척 1 = mm 도면. 문자 높이 설정은 축척 1000 기준.

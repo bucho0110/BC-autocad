@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """cad-mcp-kr 도구 전수 시험(실제 AutoCAD 필요). 새 시험 도면을 만들어 그 안에서만 작업한다.
 
 실행: <python> -X utf8 tests\test_tools_live.py [결과.json]

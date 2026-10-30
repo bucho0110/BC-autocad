@@ -1,3 +1,4 @@
+# Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """AutoLISP 실행기 — (load) 없이 파일 eval로 실행하고 결과 줄을 돌려받는다.
 
 AutoCAD 2023 실측(2026-10-28)에 근거한 방식:
