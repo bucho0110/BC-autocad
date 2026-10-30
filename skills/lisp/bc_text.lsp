@@ -3,7 +3,7 @@
 ;;; CR: 고른 문자들을 두 점으로 정한 사각형(또는 고른 객체)의 가운데로 옮기고 가운데(MC) 정렬로 바꾼다.
 ;;;     여러 문자를 고르면 묶음 전체의 가운데를 맞추므로 문자 사이 간격은 그대로다.
 ;;; ART: 문자 정렬점을 바꾼 뒤(보이는 자리는 그대로) 지정 점에 수평·수직으로 맞추거나 간격을 고르게 한다.
-;;; CTS: 문자를 조금 비켜 복사해 그림자를 만들고 원본 뒤로 보낸다.
+;;; CTS(문자 복사 방식 핵심): 문자를 조금 비켜 복사해 그림자를 만들고 원본 뒤로 보낸다. 창·외곽선은 skills/windows/cts.py.
 
 (defun bc:cr-box (e / o mn mx)
   ;; 객체 외곽 상자(WCS) ((xmin ymin z) (xmax ymax z))
@@ -161,9 +161,7 @@
     (progn (initget "S") (if (= (getkword "\n[설정 변경(S)] <끝>: ") "S") (progn (bc:open-window "ART") (bc:settings-hint "ART")))))
   (bc:end))
 
-;;; ================================================================ CTS 문자 그림자
-
-(setq bc:cts-defaults '(("X" . 0.08) ("Y" . -0.08) ("그림자색" . 8) ("원본색" . 0) ("레이어" . "")))
+;;; ================================================================ CTS 문자 그림자(복사 방식, 창이 부른다)
 
 (defun bc:cts-core (enames cfg / doc o c h st n)
   ;; 문자를 (X, Y) × 문자 높이만큼 비켜 복사하고 원본 바로 뒤로 보낸다. 만든 그림자 수.
@@ -183,12 +181,3 @@
   ;; 블록(모형·배치 공간)의 그리기 순서 표
   (setq d (vla-GetExtensionDictionary blk) r (vl-catch-all-apply 'vla-GetObject (list d "ACAD_SORTENTS")))
   (if (vl-catch-all-error-p r) (vla-AddObject d "ACAD_SORTENTS" "AcDbSortentsTable") r))
-
-(defun c:CTS (/ cfg ss)
-  (bc:begin nil)
-  (setq cfg (bc:cfg-load "CTS" bc:cts-defaults))
-  (princ "\n그림자 넣을 문자 선택(설정은 엔터 후 S): ")
-  (if (setq ss (ssget '((0 . "TEXT,MTEXT"))))
-    (princ (strcat "\n[BC] 그림자 " (itoa (bc:cts-core (bc:ss-list ss) cfg)) "개를 만들었습니다."))
-    (progn (initget "S") (if (= (getkword "\n[설정 변경(S)] <끝>: ") "S") (progn (bc:open-window "CTS") (bc:settings-hint "CTS")))))
-  (bc:end))

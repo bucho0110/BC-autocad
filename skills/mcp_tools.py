@@ -61,7 +61,7 @@ RUN_SPECS = {
     "GRP": "handle(선형 LINE·LWPOLYLINE·ARC), terrain_handles(선택, 없으면 도면 전체 3DFACE·선·폴리선), insert_point [x,y](선택: 기준선 왼쪽 끝에 종단·표 작도) → rows [측점, 누가거리, 지반고](지형 밖은 빈칸), vertices, length. settings 간격·시작거리·H/V축척·표기·정점 줄이기",
     "CFM": "handle(중심선), settings.방식 '그려진 횡단선 선택'(+ section_handles) | '측점 간격마다' | '엑셀 측점 목록'(+ stations [측점…]), terrain_handles(선택), base_point [x,y](선택: 첫 횡단 중심에 작도) → sections [{station, dist, ground [[거리(왼쪽 −), EL]], center_el}]",
     "ART": "handles(문자), point [x,y](수평·수직 정렬 기준점, 간격 조정만이면 생략), settings 방식·정렬점·간격함께·간격방식·간격·이격 → 정렬한 문자 수",
-    "CTS": "handles(문자), settings X·Y(문자 높이 배수)·그림자색·원본색·레이어 → 만든 그림자 수(원본 뒤로 보냄)",
+    "CTS": "handles(문자), settings.방식 '문자 외곽선'(트루타입 TEXT만, 정밀도·두께%)|'문자 복사'(X·Y 문자 높이 배수), 그림자색·원본색·레이어 → made, skipped [{handle, reason}] (그림자는 원본 뒤로)",
     "INN": "settings.내용('도면 (?/6)'처럼 ? 자리), 시작값·증분·자리수·소수·천단위·16진수 + ① 복사: source_handle, base_point, points [[x,y]…] ② 고치기: handles(고른 순서대로) → values",
     "QCAR": "boundary_handle(용지 경계 닫힌 폴리선), alignment_handle(선택: 번호 순서용 선형), handles(선택: 지적·지번·행정구역 객체, 없으면 도면 전체 LWPOLYLINE·문자 — settings 지적선레이어·지번문자레이어로 가름), draw(기본 true: 면적 산출선·번호) → rows [행정구역, 번호, 지번, 지목, 면적, 편입면적, 전체편입, 비고]·summary(합계·경계·차이=합계−경계)",
     "CMOB": "handles(선택, 없으면 도면 전체 대상 종류), settings.여유도(2~10) → 경계 고리 수·정점 수",
@@ -392,10 +392,6 @@ def body_for(cmd: str, a: dict) -> str:
         pt = lpt(a["point"]) if a.get("point") else "nil"
         return ("(setq _r (bc:art-core (mapcar 'handent (list %s)) %s %s)) %s"
                 % (" ".join(lq(h) for h in a["handles"]), pt, lcfg(cmd, st), emit))
-    if cmd == "CTS":
-        _need(a, "handles")
-        return ("(setq _r (bc:cts-core (mapcar 'handent (list %s)) %s)) %s"
-                % (" ".join(lq(h) for h in a["handles"]), lcfg(cmd, st), emit))
     if cmd == "WCZ":
         _need(a, "pairs")
         return ("(setq _c %s _r 0) (foreach _q (list %s) (setq _r (+ _r (bc:wcz-core (car _q) (cadr _q) _c)))) %s"
@@ -604,6 +600,20 @@ def run(ctl, cmd: str, a: dict, budget: float = 120.0) -> dict:
             _draw(ctl, doc, lib, mod.build_lisp(secs, a["base_point"], cfg), t1)
             res["drawn"] = len(secs)
         return res
+    if cmd == "CTS":
+        from skills.windows import cts
+        cfg = merged_cfg("CTS", cts.DEFAULTS, a.get("settings"))
+        _need(a, "handles")
+
+        def write(code):
+            with ctl._undo_group(doc):
+                return ctl.lisp(lib + code, doc=doc, timeout_s=t1)
+        if cfg["방식"] == cts.MODES[1]:
+            src = a["handles"]
+        else:
+            src = ctl.lisp(lib + '(setq _ss (ssadd)) (foreach _h (list %s) (if (handent _h) (ssadd (handent _h) _ss)))'
+                           % " ".join(lq(h) for h in a["handles"]) + cts.INFO_LISP, doc=doc, timeout_s=t1)
+        return dict(cts.run_core(None, write, src, cfg), drawing=doc.Name)
     if cmd == "INN":
         from skills.windows import inn
         cfg = merged_cfg("INN", inn.DEFAULTS, a.get("settings"))

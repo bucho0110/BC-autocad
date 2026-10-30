@@ -22,6 +22,7 @@
 (defun c:RCSE () (bc:open-window "RCSE") (princ))  ; 평면 대횡단 작성
 (defun c:CSAR () (bc:open-window "CSAR") (princ))  ; 횡단면 도곽 배치
 (defun c:HWLM () (bc:open-window "HWLM") (princ))  ; 횡단 계획홍수위 일괄 표기
+(defun c:CTS () (bc:open-window "CTS") (princ))  ; 문자 그림자 생성
 (defun c:INN () (bc:open-window "INN") (princ))  ; 임의 숫자 증가
 (defun c:MUIN () (bc:open-window "MUIN") (princ))  ; 여러 도면 원래 좌표로 불러오기
 (defun c:CALC () (bc:open-window "CALC") (princ))  ; CAD 계산기
@@ -89,7 +90,7 @@
   (princ "\n  ── 수정")
   (princ "\n  BCXYB   X·Y 축척 개별 변환")
   (princ "\n  BCART   문자 정렬")
-  (princ "\n  BCCTS   문자 그림자 생성")
+  (princ "\n  BCCTS   문자 그림자 생성 (대화상자)")
   (princ "\n  BCINN   임의 숫자 증가 (대화상자)")
   (princ "\n  BCCR    문자를 사각형 가운데로 정렬")
   (princ "\n  ── 레이어")

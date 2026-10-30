@@ -162,10 +162,29 @@ async def main():
             check("ART 수직 줄 간격 5", ys[0] - ys[1] == 5.0 and ys[1] - ys[2] == 5.0, ys)
 
             sh = await lisp(t2("그림자", 700, 100))
-            r = await run("CTS", handles=sh, settings={"X": 0.1, "Y": -0.1, "그림자색": 8})
+            r = await run("CTS", handles=sh, settings={"방식": "문자 복사", "X": 0.1, "Y": -0.1, "그림자색": 8})
             c = (await lisp('(setq _e (entget (entlast))) (write-line (strcat (bc:rtos (cadr (assoc 10 _e)) 2 4) _d'
                             ' (bc:rtos (caddr (assoc 10 _e)) 2 4) _d (itoa (cdr (assoc 62 _e))) _d (cdr (assoc 1 _e))) _fp)'))[0]
-            check("CTS 그림자: 높이 2 × 0.1 비킴, 색 8", r["results"] == ["1"] and c == "700.2000\t99.8000\t8\t그림자", c)
+            check("CTS 복사: 높이 2 × 0.1 비킴, 색 8", r["made"] == 1 and c == "700.2000\t99.8000\t8\t그림자", c)
+            # 외곽선: 트루타입(맑은 고딕) 스타일 문자는 윤곽 폴리선, SHX(Standard) 문자는 건너뜀
+            await lisp('(vla-SetFont (vla-Add (vla-get-TextStyles (vla-get-ActiveDocument (vlax-get-acad-object))) "시험_맑은고딕")'
+                       ' "맑은 고딕" :vlax-false :vlax-false 129 34)')
+            tt = await lisp(MK % '(cons 0 "TEXT") (list 10 720.0 100.0 0.0) (cons 40 2.0) (cons 1 "횡단 A") (cons 7 "시험_맑은고딕")')
+            r = await run("CTS", handles=tt + sh, settings={"방식": "문자 외곽선", "두께": 10.0, "그림자색": 8})
+            box = await lisp('(setq _b (bc:cr-box (handent "%s"))) (setq _n 0 _w nil _lo nil _hi nil)'
+                             ' (foreach _e (bc:ss-list (ssget "_X" (list (cons 0 "LWPOLYLINE") (cons 62 8))))'
+                             '  (setq _n (1+ _n) _w (cdr (assoc 43 (entget _e))))'
+                             '  (foreach _p (bc:verts _e) (setq _lo (if _lo (mapcar (quote min) _lo _p) _p) _hi (if _hi (mapcar (quote max) _hi _p) _p))))'
+                             ' (write-line (strcat (itoa _n) _d (bc:rtos _w 2 3) _d (bc:rtos (- (car _lo) (caar _b)) 2 3) _d'
+                             '  (bc:rtos (- (cadr _lo) (cadar _b)) 2 3) _d (bc:rtos (- (car _hi) (caadr _b)) 2 3) _d'
+                             '  (bc:rtos (- (cadr _hi) (cadadr _b)) 2 3)) _fp)' % tt[0])
+            b = box[0].split("\t")
+            check("CTS 외곽선: 1개 만들고 SHX 1개 건너뜀", r["made"] == 1 and len(r["skipped"]) == 1, r)
+            # AutoCAD 외곽 상자는 잉크가 아니라 왼쪽이 펜 원점(첫 글자 왼쪽 여백 포함)이라, 윤곽은 위·아래는 상자와 같고
+            # 왼쪽은 여백만큼(0 ~ 0.3) 안쪽, 오른쪽은 상자 안(0 ~ −0.1). 화면 캡처로 글자를 정확히 감싸는 것을 확인함(2026-10-30)
+            check("CTS 외곽선: 폴리선 여럿·폭 0.2(높이 2의 10%)·글자 윤곽 자리", int(b[0]) >= 6 and b[1] == "0.200"
+                  and 0 <= float(b[2]) <= 0.3 and abs(float(b[3])) <= 0.01 and -0.1 <= float(b[4]) <= 0
+                  and abs(float(b[5])) <= 0.01, b)
 
             src = await lisp(t2("횡단면도 (1/6)", 800, 100) + t2("x", 800, 90) + t2("y", 800, 85))
             r = await run("INN", handles=src[1:], settings={"내용": "횡단면도 (?/6)", "시작값": "2", "증분": "1"})
