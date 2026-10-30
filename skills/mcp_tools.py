@@ -8,6 +8,7 @@
 skill_run의 LISP 실행은 server의 COM 스레드에서 ctl.lisp로 한다(유휴 확인·ESC 복구·UNDO 한 묶음).
 """
 
+import importlib
 import json
 import os
 import subprocess
@@ -18,6 +19,7 @@ from skills.common import coords as C
 from skills.common import lisplib
 from skills.common import paths
 from skills.common import settings as S
+from skills.common import terrain
 
 RUN_SPECS = {
     "FE": "base_point [x,y], base_el, points [[x,y],...] (또는 handle: 선·폴리선 정점 전부)",
@@ -31,6 +33,7 @@ RUN_SPECS = {
     "ZBC": "handle(폴리선), table_point",
     "WCD": "handle(사각 폴리선)",
     "XYB": "handles, base_point, sx, sy",
+    "CALC": "expression('(2*3)+sin(30)'·'폭 5.0 × 2' 같은 식) 또는 settings.대상('문자'|'치수'|'객체 길이'|'면적(객체)'|'체적'|'수식' + handles, '거리'|'수평 거리'|'수직 거리' + points 이어진 점)·settings.방식('+'|'-'|'×'|'÷'|'평균') → expression·result·text. write_point [x,y]면 결과 문자 쓰기, replace_handle이면 그 문자 내용 바꾸기. 길이·면적·체적은 settings.축척(1000=m 도면)으로 m 단위",
     "MUIN": "files [경로…](.dwg·.dxf), explode(기본 true — false면 파일 이름 블록) → 파일별 넣은 객체 수. 원래 좌표 그대로",
     "CR": "handles(문자들), p1·p2(사각형 두 모서리) 또는 target_handle(그 객체 가운데) → 옮긴 문자 수",
     "LOL": "layers [레이어 이름…] 또는 handles [객체 핸들…] — 이 레이어만 켜고 나머지 끔 → 바뀐 레이어 수",
@@ -48,9 +51,22 @@ RUN_SPECS = {
     "CCL": "handles — 현재 레이어로 옮김(잠긴 레이어 객체는 그대로) → 옮긴 객체 수",
     "CEX": "handles(선택, 없으면 도면 전체 대상 종류), csv_path(선택) → rows(기본 토목 좌표 [북, 동] — settings 좌표=수학이면 [x, y]). 2000행 넘으면 truncated — 전부는 csv_path로",
     "CIM": "rows [[...]] — 열 순서는 settings.열(기본 '번호,X,Y' 3열, 토목 좌표 X=북). [[x, y]]만 줄 때는 settings {\"열\": \"X,Y\", \"좌표\": \"수학\"}",
+    "TTE": "groups [[핸들…], …](묶음마다 한 열) 또는 handles(한 묶음), 없으면 도면 전체 문자 → rows(엑셀에 넣을 표, settings.방향 '아래로'면 묶음=열). settings.처리로 내보낸 문자 레이어·색 변경·삭제",
     "RCE": "창 전용 — 사람이 점을 하나씩 찍는 명령이라 skill_run으로는 못 한다. skill_open(\"RCE\")",
     "FPEL": "start_point, start_el, rows [[측점, EL, 표기1, 표기2]]",
     "DTIN": "handles(선택, 없으면 도면 전체 대상 종류)",
+    "CCON": "handles(선택, 없으면 도면 전체 대상 종류 — settings.방식 '3D면(삼각망) 선택'이면 3DFACE) → 점·삼각형·높이·등고선 수, z_range. 간격·레이어·외측최소화(1~5)·특정높이는 settings",
+    "WCZ": "pairs [[낮은 쪽 점, 높은 쪽 점], …] — 선분이 지나는 등고선마다 높이 문자 → 쓴 문자 수",
+    "DCON": "handles(등고선, 선택 — 없으면 도면 전체 선·폴리선·스플라인) → 옮긴 객체 수. settings 간격·머리말·시작색(R,G,B)·명도단계",
+    "GRP": "handle(선형 LINE·LWPOLYLINE·ARC), terrain_handles(선택, 없으면 도면 전체 3DFACE·선·폴리선), insert_point [x,y](선택: 기준선 왼쪽 끝에 종단·표 작도) → rows [측점, 누가거리, 지반고](지형 밖은 빈칸), vertices, length. settings 간격·시작거리·H/V축척·표기·정점 줄이기",
+    "CFM": "handle(중심선), settings.방식 '그려진 횡단선 선택'(+ section_handles) | '측점 간격마다' | '엑셀 측점 목록'(+ stations [측점…]), terrain_handles(선택), base_point [x,y](선택: 첫 횡단 중심에 작도) → sections [{station, dist, ground [[거리(왼쪽 −), EL]], center_el}]",
+    "ART": "handles(문자), point [x,y](수평·수직 정렬 기준점, 간격 조정만이면 생략), settings 방식·정렬점·간격함께·간격방식·간격·이격 → 정렬한 문자 수",
+    "CTS": "handles(문자), settings X·Y(문자 높이 배수)·그림자색·원본색·레이어 → 만든 그림자 수(원본 뒤로 보냄)",
+    "INN": "settings.내용('도면 (?/6)'처럼 ? 자리), 시작값·증분·자리수·소수·천단위·16진수 + ① 복사: source_handle, base_point, points [[x,y]…] ② 고치기: handles(고른 순서대로) → values",
+    "QCAR": "boundary_handle(용지 경계 닫힌 폴리선), alignment_handle(선택: 번호 순서용 선형), handles(선택: 지적·지번·행정구역 객체, 없으면 도면 전체 LWPOLYLINE·문자 — settings 지적선레이어·지번문자레이어로 가름), draw(기본 true: 면적 산출선·번호) → rows [행정구역, 번호, 지번, 지목, 면적, 편입면적, 전체편입, 비고]·summary(합계·경계·차이=합계−경계)",
+    "CMOB": "handles(선택, 없으면 도면 전체 대상 종류), settings.여유도(2~10) → 경계 고리 수·정점 수",
+    "DSEL": "handles(선택, 없으면 도면 전체 대상 종류), settings 조건·EL, center [x,y](선택: 연결선 시작점) → 찾은 점 수",
+    "TTP": "handles(선택, 없으면 도면 전체 대상 종류), settings.기능('문자→Z점'|'점·블록→Z문자'|'선 정점→Z점·문자'|'문자 주변 점·블록 Z 올리기') → 만든 점·문자 수, Z 올린 수",
     "MPL": "mode AUTO|EXTENTS, output_dir, paper('A3 (297 x 420 mm)' 등), plotter, ctb, order, merge, custom_paper [가로mm, 세로mm](선택)",
     "DCP": "handles [선1, 선2] — 두 선이 서로 마주 보는 구간에만 중심선(기본). settings {\"끝연장\": true}면 양 끝을 끝 접선 방향으로 늘여 두 선의 끝점 중 더 나간 쪽과 나란하게. 거절: 닫힌 선·교차·겹침·T자 맞닿음(끝점 하나 공유는 됨)·고도가 변하는 3D 선·한 선이 다른 선을 감쌈. settings.허용오차는 도면 단위(m 도면 0.001 = 1mm, mm 도면이면 1)",
     "DCEN": "handles (원·호들) 또는 two_lines [선1, 선2]",
@@ -371,6 +387,28 @@ def body_for(cmd: str, a: dict) -> str:
         _need(a, "ground_handle", "p1", "p2")
         return "(setq _r (bc:cut-core (handent %s) %s %s %s)) %s" % (lq(a["ground_handle"]), lpt(a["p1"]), lpt(a["p2"]),
                                                                   lcfg(cmd, st), emit)
+    if cmd == "ART":
+        _need(a, "handles")
+        pt = lpt(a["point"]) if a.get("point") else "nil"
+        return ("(setq _r (bc:art-core (mapcar 'handent (list %s)) %s %s)) %s"
+                % (" ".join(lq(h) for h in a["handles"]), pt, lcfg(cmd, st), emit))
+    if cmd == "CTS":
+        _need(a, "handles")
+        return ("(setq _r (bc:cts-core (mapcar 'handent (list %s)) %s)) %s"
+                % (" ".join(lq(h) for h in a["handles"]), lcfg(cmd, st), emit))
+    if cmd == "WCZ":
+        _need(a, "pairs")
+        return ("(setq _c %s _r 0) (foreach _q (list %s) (setq _r (+ _r (bc:wcz-core (car _q) (cadr _q) _c)))) %s"
+                % (lcfg(cmd, st), " ".join("(list %s %s)" % (lpt(p), lpt(q)) for p, q in a["pairs"]), emit))
+    if cmd == "DSEL":
+        ens = ("(mapcar 'handent (list %s))" % " ".join(lq(h) for h in a["handles"]) if a.get("handles") else
+               "(bc:ss-list (ssget \"_X\" (append (bc:dsel-filter _c) (list (cons 410 \"Model\")))))")
+        return ("(setq _c %s) (setq _r (bc:dsel-core %s %s _c)) %s"
+                % (lcfg(cmd, st), ens, lpt(a["center"]) if a.get("center") else "nil", emit))
+    if cmd == "DCON":
+        ens = ("(mapcar 'handent (list %s))" % " ".join(lq(h) for h in a["handles"]) if a.get("handles") else
+               "(bc:ss-list (ssget \"_X\" (list (cons 0 \"LWPOLYLINE,POLYLINE,SPLINE,LINE\") (cons 410 \"Model\"))))")
+        return "(setq _r (bc:dcon-core %s %s)) %s" % (ens, lcfg(cmd, st), emit)
     raise LookupError("%s는 skill_run에서 값만으로 실행하는 방식을 아직 지원하지 않습니다(창: skill_open)." % cmd)
 
 
@@ -383,12 +421,15 @@ def _dump_body(handles, types, usealign=False) -> str:
 
 
 HANDLE_KEYS = ("handle", "handles", "others", "two_lines", "curve_handle", "base_handle", "detail_handle",
-               "ground_handle", "bottom_handle", "target_handle")
+               "ground_handle", "bottom_handle", "target_handle", "replace_handle", "terrain_handles", "section_handles",
+               "boundary_handle", "alignment_handle", "source_handle")
 LAYER_PICK = ("LOL", "LOF", "LFR", "FRE", "LLO", "LUL", "LOE")  # 레이어 이름 또는 객체 핸들로 고르는 레이어 명령
 LAYER_ALL = ("LON", "OLO", "LTH", "ULA")  # 인자 없이 전체 레이어에 하는 명령
 _CURVES = {"LINE", "LWPOLYLINE", "POLYLINE", "ARC", "SPLINE"}
 # 명령 → {인자 이름: 받는 개체 종류} — 엉뚱한 개체(문자 등)를 넘기면 허공에 그리기 전에 거절한다
 KIND_RULES = {"CSS": {"ground_handle": {"LWPOLYLINE", "POLYLINE", "LINE"}},
+              "GRP": {"handle": {"LINE", "LWPOLYLINE", "ARC"}}, "CFM": {"handle": {"LINE", "LWPOLYLINE", "ARC"},
+                                                                  "section_handles": {"LINE", "LWPOLYLINE"}},
               "CUT": {"ground_handle": {"LWPOLYLINE", "POLYLINE"}},
               "NSLO": {"handle": _CURVES, "bottom_handle": _CURVES},
               "ZBC": {"handle": {"LWPOLYLINE", "POLYLINE"}}, "WCD": {"handle": {"LWPOLYLINE", "POLYLINE"}},
@@ -430,7 +471,7 @@ def _check_handles(ctl, lib, doc, cmd, a, timeout_s):
         v = a.get(k)
         if v in (None, ""):
             continue
-        if k in ("handles", "others", "two_lines"):
+        if k in ("handles", "others", "two_lines", "terrain_handles", "section_handles"):
             if isinstance(v, str):
                 raise ValueError("%s는 핸들 목록(JSON 배열)이어야 합니다: %r" % (k, v))
             vs = [str(x) for x in v]
@@ -512,6 +553,127 @@ def run(ctl, cmd: str, a: dict, budget: float = 120.0) -> dict:
         items = fpel.items_from_rows(a["rows"], cfg)
         _draw(ctl, doc, lib, fpel.build_lisp(items, cfg, a["start_point"], float(a["start_el"])), t1)
         return {"drawing": doc.Name, "marked": len(items)}
+    if cmd == "CCON":
+        from skills.windows import ccon
+        cfg = merged_cfg("CCON", ccon.DEFAULTS, a.get("settings"))
+        if a.get("handles"):
+            sel = '(setq _ss (ssadd)) (foreach _h (list %s) (if (handent _h) (ssadd (handent _h) _ss)))' % " ".join(
+                lq(h) for h in a["handles"])
+        else:
+            ty = "3DFACE" if cfg["방식"] != "점에서 삼각망" else terrain.types_for(cfg)
+            sel = '(setq _ss (ssget "_X" (list (cons 0 %s) (cons 410 "Model"))))' % lq(ty)
+        rows = ctl.lisp(lib + sel + ccon.dump_lisp(cfg), doc=doc, timeout_s=t1)
+        parts, info = ccon.build(*ccon.surface(rows, cfg), cfg)
+        with ctl._undo_group(doc):
+            for c in ccon.chunks(parts):
+                ctl.lisp(lib + c, doc=doc, timeout_s=t1)
+        return dict(info, drawing=doc.Name)
+    if cmd in ("GRP", "CFM"):
+        from skills.common import profile as G
+        mod = importlib.import_module("skills.windows.%s" % cmd.lower())
+        cfg = merged_cfg(cmd, mod.DEFAULTS, a.get("settings"))
+        _need(a, "handle")
+        body = '(setq _al (handent %s) _skip (list _al)) %s' % (lq(a["handle"]), G.ALIGN_LISP)
+        if a.get("section_handles"):
+            body += ('(setq _sl (ssadd)) (foreach _h (list %s) (if (handent _h) (ssadd (handent _h) _sl)))'
+                     ' (setq _skip (append _skip (bc:ss-list _sl))) %s'
+                     % (" ".join(lq(h) for h in a["section_handles"]), mod.LINES_LISP))
+        if a.get("terrain_handles"):
+            body += ('(setq _ss (ssadd)) (foreach _h (list %s) (if (handent _h) (ssadd (handent _h) _ss)))'
+                     % " ".join(lq(h) for h in a["terrain_handles"]))
+        else:
+            body += '(setq _ss (ssget "_X" (list (cons 0 %s) (cons 410 "Model"))))' % lq(G.TERRAIN_TYPES)
+        rows = ctl.lisp(lib + body + G.TERRAIN_LISP, doc=doc, timeout_s=t1)
+        if cmd == "GRP":
+            _el, prof, table, ms, _st = mod.compute(rows, rows, cfg)
+            res = {"drawing": doc.Name, "rows": [["측점", "누가거리", "지반고"]] + table, "vertices": len(prof),
+                   "length": round(G.total_len(_el), 4)}
+            if a.get("insert_point"):
+                _draw(ctl, doc, lib, mod.build_lisp(prof, table, ms, a["insert_point"], cfg), t1)
+                res["drawn"] = True
+            return res
+        elems = G.parse_align(rows)
+        if cfg["역방향"]:
+            elems = G.reverse_elems(elems)
+        drawn = [((float(c[1]), float(c[2])), (float(c[3]), float(c[4])))
+                 for c in (r.split("\t") for r in rows) if c[0] == "X"]
+        secs = mod.compute(elems, G.parse_edges(rows, cfg["Z0제외"]),
+                           mod.section_lines(elems, cfg, drawn, a.get("stations")), cfg, G.parse_faces(rows, cfg["Z0제외"]))
+        res = {"drawing": doc.Name, "sections": secs}
+        if a.get("base_point") and secs:
+            _draw(ctl, doc, lib, mod.build_lisp(secs, a["base_point"], cfg), t1)
+            res["drawn"] = len(secs)
+        return res
+    if cmd == "INN":
+        from skills.windows import inn
+        cfg = merged_cfg("INN", inn.DEFAULTS, a.get("settings"))
+        if a.get("handles"):  # 기존 문자 고치기: 고른 순서대로 다음 값
+            vals = inn.values(cfg, len(a["handles"]))
+            body = "".join('(vla-put-TextString (vlax-ename->vla-object (handent %s)) %s) (entupd (handent %s))'
+                           % (lq(h), lq(v), lq(h)) for h, v in zip(a["handles"], vals))
+        else:
+            _need(a, "source_handle", "base_point", "points")
+            vals = inn.values(cfg, len(a["points"]))
+            body = inn.copy_lisp("(handent %s)" % lq(a["source_handle"]), vals, lpt(a["base_point"]),
+                                 [lpt(p) for p in a["points"]])
+        _draw(ctl, doc, lib, body, t1)
+        return {"drawing": doc.Name, "values": vals}
+    if cmd == "QCAR":
+        from skills.common import profile as G
+        from skills.windows import qcar
+        cfg = merged_cfg("QCAR", qcar.DEFAULTS, a.get("settings"))
+        _need(a, "boundary_handle")
+        body = ('(setq _bd (handent %s) _skip (list _bd)) (write-line (strcat "BD" _d (cdr (assoc 5 (entget _bd)))) _fp)'
+                % lq(a["boundary_handle"]))
+        if a.get("alignment_handle"):
+            body += '(setq _al (handent %s) _skip (cons _al _skip)) %s' % (lq(a["alignment_handle"]), G.ALIGN_LISP)
+        if a.get("handles"):
+            body += ('(setq _ss (ssadd)) (foreach _h (list %s) (if (handent _h) (ssadd (handent _h) _ss)))'
+                     % " ".join(lq(h) for h in a["handles"]))
+        else:
+            body += '(setq _ss (ssget "_X" (list (cons 0 "LWPOLYLINE,TEXT,MTEXT") (cons 410 "Model"))))'
+        rows = ctl.lisp(lib + body + '(write-line "ENDAL" _fp)' + qcar.DUMP_LISP, doc=doc, timeout_s=t1)
+        res = qcar.run_core(lambda code: ctl.lisp(lib + code, doc=doc, timeout_s=t1),
+                            lambda code: _draw(ctl, doc, lib, code, t1), rows, cfg, a.get("draw", True))
+        return dict(res, drawing=doc.Name)
+    if cmd == "CMOB":
+        from skills.windows import cmob
+        cfg = merged_cfg("CMOB", cmob.DEFAULTS, a.get("settings"))
+        rows = ctl.lisp(lib + _dump_body(a.get("handles"), terrain.types_for(cfg)), doc=doc, timeout_s=t1)
+        code, info = cmob.build(C.parse_dump(rows), cfg)
+        _draw(ctl, doc, lib, code, t1)
+        return dict(info, drawing=doc.Name)
+    if cmd == "CALC":
+        from skills.windows import calc
+        return calc.run_mcp(ctl, doc, lib, a, t1, merged_cfg, lq, lambda code: _draw(ctl, doc, lib, code, t1))
+    if cmd == "TTE":
+        from skills.windows import tte
+        cfg = merged_cfg("TTE", tte.DEFAULTS, a.get("settings"))
+        gs = a.get("groups") or ([a["handles"]] if a.get("handles") else [None])
+        groups = []
+        for g in gs:
+            if g:
+                sel = ('(setq _ss (ssadd)) (foreach _h (list %s) (if (handent _h) (ssadd (handent _h) _ss)))'
+                       % " ".join(lq(h) for h in g))
+            else:
+                sel = '(setq _ss (ssget "_X" (list (cons 0 %s) (cons 410 "Model"))))' % lq(tte.types_for(cfg))
+            groups.append(tte.sort_items(tte.parse(ctl.lisp(lib + sel + tte.dump_lisp(cfg), doc=doc, timeout_s=t1)),
+                                         cfg["정렬"]))
+        code = tte.after_lisp([it["handle"] for g in groups for it in g], cfg)
+        if code:
+            _draw(ctl, doc, lib, code, t1)
+        rows = tte.grid(groups, cfg)
+        return {"drawing": doc.Name, "rows": rows[:2000], "row_count": len(rows), "truncated": len(rows) > 2000,
+                "texts": sum(len(g) for g in groups)}
+    if cmd == "TTP":
+        from skills.windows import ttp
+        cfg = merged_cfg("TTP", ttp.DEFAULTS, a.get("settings"))
+        rows = ctl.lisp(lib + _dump_body(a.get("handles"), ttp.types_for(cfg), cfg["문자기준"] == "정렬점"),
+                        doc=doc, timeout_s=t1)
+        code, made = ttp.build(C.parse_dump(rows), cfg)
+        if code:
+            _draw(ctl, doc, lib, code, t1)
+        return dict(made, drawing=doc.Name)
     if cmd == "DTIN":
         from skills.windows import dtin
         cfg = merged_cfg("DTIN", dtin.DEFAULTS, a.get("settings"))

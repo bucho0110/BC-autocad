@@ -3,9 +3,16 @@
 
 (defun c:FPEL () (bc:open-window "FPEL") (princ))  ; 종단도 다중 EL 표기
 (defun c:DTIN () (bc:open-window "DTIN") (princ))  ; 삼각망 작성
+(defun c:TTP () (bc:open-window "TTP") (princ))  ; Z값 점·문자 생성
+(defun c:CCON () (bc:open-window "CCON") (princ))  ; 등고선 생성
+(defun c:CMOB () (bc:open-window "CMOB") (princ))  ; 지형 외곽 경계 그리기
+(defun c:GRP () (bc:open-window "GRP") (princ))  ; 지형에서 종단 추출
+(defun c:CFM () (bc:open-window "CFM") (princ))  ; 지형에서 횡단 추출
+(defun c:QCAR () (bc:open-window "QCAR") (princ))  ; 용지도 면적 산출
 (defun c:CEX () (bc:open-window "CEX") (princ))  ; 객체 좌표 출력
 (defun c:RCE () (bc:open-window "RCE") (princ))  ; 순번 붙여 좌표 출력
 (defun c:CIM () (bc:open-window "CIM") (princ))  ; 좌표 목록으로 작도
+(defun c:TTE () (bc:open-window "TTE") (princ))  ; 문자를 엑셀로
 (defun c:DSTA () (bc:open-window "DSTA") (princ))  ; 선형 측점 표기
 (defun c:DIBC () (bc:open-window "DIBC") (princ))  ; 측점별 이격 거리 산정
 (defun c:HWLI () (bc:open-window "HWLI") (princ))  ; 측점 값 보간(기본→실시설계)
@@ -15,7 +22,9 @@
 (defun c:RCSE () (bc:open-window "RCSE") (princ))  ; 평면 대횡단 작성
 (defun c:CSAR () (bc:open-window "CSAR") (princ))  ; 횡단면 도곽 배치
 (defun c:HWLM () (bc:open-window "HWLM") (princ))  ; 횡단 계획홍수위 일괄 표기
+(defun c:INN () (bc:open-window "INN") (princ))  ; 임의 숫자 증가
 (defun c:MUIN () (bc:open-window "MUIN") (princ))  ; 여러 도면 원래 좌표로 불러오기
+(defun c:CALC () (bc:open-window "CALC") (princ))  ; CAD 계산기
 (defun c:MPL () (bc:open-window "MPL") (princ))  ; 다중 플롯
 (defun c:MPLOT () (bc:fn-MPL))
 
@@ -33,6 +42,16 @@
   (princ "\n  BCIEL   삼각망 위치 EL 산정")
   (princ "\n  BCFPEL  종단도 다중 EL 표기 (대화상자)")
   (princ "\n  BCDTIN  삼각망 작성 (대화상자)")
+  (princ "\n  BCTTP   Z값 점·문자 생성 (대화상자)")
+  (princ "\n  ── 지형")
+  (princ "\n  BCCCON  등고선 생성 (대화상자)")
+  (princ "\n  BCWCZ   등고선 높이 문자 쓰기")
+  (princ "\n  BCDCON  등고선 높이별 레이어 분리")
+  (princ "\n  BCCMOB  지형 외곽 경계 그리기 (대화상자)")
+  (princ "\n  BCDSEL  EL 조건 점 표시")
+  (princ "\n  BCGRP   지형에서 종단 추출 (대화상자)")
+  (princ "\n  BCCFM   지형에서 횡단 추출 (대화상자)")
+  (princ "\n  BCQCAR  용지도 면적 산출 (대화상자)")
   (princ "\n  ── 좌표")
   (princ "\n  BCXY    좌표 문자 표기")
   (princ "\n  BCZBC   경계 좌표표 작성")
@@ -40,6 +59,7 @@
   (princ "\n  BCCEX   객체 좌표 출력 (대화상자)")
   (princ "\n  BCRCE   순번 붙여 좌표 출력 (대화상자)")
   (princ "\n  BCCIM   좌표 목록으로 작도 (대화상자)")
+  (princ "\n  BCTTE   문자를 엑셀로 (대화상자)")
   (princ "\n  ── 선형")
   (princ "\n  BCDCP   두 선의 중심선 작도")
   (princ "\n  BCDCEN  원·호·두 선 중심선 표시")
@@ -68,6 +88,9 @@
   (princ "\n  BCHWLM  횡단 계획홍수위 일괄 표기 (대화상자)")
   (princ "\n  ── 수정")
   (princ "\n  BCXYB   X·Y 축척 개별 변환")
+  (princ "\n  BCART   문자 정렬")
+  (princ "\n  BCCTS   문자 그림자 생성")
+  (princ "\n  BCINN   임의 숫자 증가 (대화상자)")
   (princ "\n  BCCR    문자를 사각형 가운데로 정렬")
   (princ "\n  ── 레이어")
   (princ "\n  BCLOL   고른 레이어만 켜기")
@@ -85,6 +108,7 @@
   (princ "\n  BCCCL   객체를 현재 레이어로 이동")
   (princ "\n  ── 유틸리티")
   (princ "\n  BCMUIN  여러 도면 원래 좌표로 불러오기 (대화상자)")
+  (princ "\n  BCCALC  CAD 계산기 (대화상자)")
   (princ "\n  BCMPL   다중 플롯 (대화상자)")
   (princ "\n  ※ 명령은 BC를 붙여 입력합니다(FE → BCFE). 단축 이름은 BCHELP 대화상자에서 활성화합니다.")
   (if bc:*short* (progn (princ "\n  ※ 활성화된 단축 이름:") (foreach _k bc:*short* (princ (strcat " " _k))) (princ "  (모두 해제: BCOFF)")))

@@ -15,7 +15,9 @@ pairs = {"FE": "(append bc:el-defaults bc:fe-extra)", "FW": "(append bc:el-defau
          "DCP": "bc:dcp-defaults", "DCEN": "bc:dcen-defaults", "GST": "bc:gst-defaults", "STT": "bc:stt-defaults",
          "CST": "bc:cst-defaults", "NUST": "bc:nust-defaults", "MIP": "bc:mip-defaults",
          "DSLO": "bc:dslo-defaults", "NSLO": "bc:nslo-defaults", "DFB": "bc:dfb-defaults", "SLL": "bc:sll-defaults",
-         "SLT": "bc:slt-defaults", "CSS": "bc:css-defaults", "CUT": "bc:cut-defaults"}
+         "SLT": "bc:slt-defaults", "CSS": "bc:css-defaults", "CUT": "bc:cut-defaults",
+         "WCZ": "bc:wcz-defaults", "DSEL": "bc:dsel-defaults", "DCON": "bc:dcon-defaults",
+         "ART": "bc:art-defaults", "CTS": "bc:cts-defaults"}
 body = "".join('(foreach _p %s (write-line (strcat "%s" _d (car _p) _d (bc:str (cdr _p))) _fp))' % (v, k) for k, v in pairs.items())
 lisp = {}
 for r in a.lisp(body):

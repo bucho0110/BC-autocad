@@ -69,7 +69,7 @@ INSTRUCTIONS = """AutoCAD 제어 MCP(한글판). AutoCAD의 '활성 도면'에 �
 - 화면 확인은 capture_view(도면 영역만 PNG로 저장, 포커스를 뺏지 않음).
 - "백그라운드로", "화면 건드리지 말고 파일로" 같은 요청이나 큰 그림·새 도면 만들기는 build_drawing_background
   (화면 없는 AutoCAD로 새 DWG를 만든다. 사용자의 AutoCAD 화면은 건드리지 않는다).
-- 스킬 명령 55개(EL·좌표·선형·측점·제방·사면·하천 횡단·수정·레이어·도면 불러오기·다중 플롯, 예: FE·XY·DSTA·HWLM·LOL·MUIN): skill_list로 목록,
+- 스킬 명령 69개(EL·지형·좌표·선형·측점·제방·사면·하천 횡단·수정·레이어·도면 불러오기·계산기·다중 플롯, 예: FE·CCON·GRP·QCAR·XY·DSTA·HWLM·LOL·CALC): skill_list로 목록,
   사람에게는 skill_open(창)이 기본, 값이 정해진 일은 skill_run. AutoCAD에서는 BCFE처럼 BC를 붙인 이름(BCHELP에서 체크한 명령만 FE 같은 짧은 이름도).
   · skill_run 전에 skill_list(command=명령)로 settings 키 이름을 확인한다(명령마다 이름·의미가 다르다).
   · skill_run은 엑셀 없이 JSON으로 한다(rows로 넣고 table·rows로 받는다). 설명의 '엑셀'은 창에서 쓸 때 이야기다.
@@ -730,7 +730,7 @@ def _skills():
 
 @mcp.tool(structured_output=False)
 async def skill_list(ctx: Context, command: str = "") -> str:
-    """AutoCAD 스킬 명령 55개 목록(EL·좌표·선형·측점·사면·하천 횡단·수정·레이어·도면 불러오기·다중 플롯).
+    """AutoCAD 스킬 명령 69개 목록(EL·지형·좌표·선형·측점·사면·하천 횡단·수정·레이어·도면 불러오기·계산기·다중 플롯).
     command를 비우면 전체 요약: command, title, group, kind(lisp=AutoCAD에서 바로 찍는 명령 / window=창), desc, run_args.
     command를 주면 그 명령 하나를 자세히: settings(skill_run의 settings에 넣을 수 있는 키·기본값·선택지), settings_file.
     skill_run 전에 그 명령을 command로 한 번 불러 설정 키 이름을 확인한다(명령마다 '간격'·'측점간격'처럼 다르다).

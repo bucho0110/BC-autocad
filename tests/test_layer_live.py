@@ -71,7 +71,7 @@ async def main():
             await call("new_drawing")
             h = dict(ln.split("\t") for ln in (await call("run_lisp", code=SETUP))["lines"])
             lst = await call("skill_list")
-            check("명령 55개(레이어 13·CR·MUIN 포함)", len(lst) == 55 and {"LOL", "CR", "CCL", "MUIN"} <= {x["command"] for x in lst},
+            check("명령 69개(레이어 13·CR·MUIN 포함)", len(lst) == 69 and {"LOL", "CR", "CCL", "MUIN"} <= {x["command"] for x in lst},
                   len(lst))
 
             await run("LOL", layers=["가"])
