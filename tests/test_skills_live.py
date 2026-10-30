@@ -33,7 +33,7 @@ async def main():
         async with ClientSession(r, w) as s:
             await s.initialize()
             tools = [t.name for t in (await s.list_tools()).tools]
-            check("도구 수 67", len(tools) == 67, len(tools))
+            check("도구 수 68", len(tools) == 68, len(tools))
 
             async def call(name, **kw):
                 res = await s.call_tool(name, kw)

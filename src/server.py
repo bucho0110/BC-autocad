@@ -67,6 +67,8 @@ INSTRUCTIONS = """AutoCAD 제어 MCP(한글판). AutoCAD의 '활성 도면'에 �
   쓰지 말 것. 길이 제한 없음(파일로 넘김), 한글 가능.
 - "결과를 확인할 수 없다"·"취소했다"는 오류가 오면 같은 작업을 다시 보내지 말고 먼저 도면을 확인한다.
 - 화면 확인은 capture_view(도면 영역만 PNG로 저장, 포커스를 뺏지 않음).
+- "백그라운드로", "화면 건드리지 말고 파일로" 같은 요청이나 큰 그림·새 도면 만들기는 build_drawing_background
+  (화면 없는 AutoCAD로 새 DWG를 만든다. 사용자의 AutoCAD 화면은 건드리지 않는다).
 - 스킬 명령 40개(EL·좌표·선형·측점·제방·사면·하천 횡단·다중 플롯 MPL, 예: FE·XY·DSTA·HWLM): skill_list로 목록,
   사람에게는 skill_open(창)이 기본, 값이 정해진 일은 skill_run. AutoCAD에서는 BCFE처럼 BC를 붙인 이름(BCHELP에서 체크한 명령만 FE 같은 짧은 이름도).
   · skill_run 전에 skill_list(command=명령)로 settings 키 이름을 확인한다(명령마다 이름·의미가 다르다).
@@ -686,6 +688,30 @@ async def zoom_window(ctx: Context, x1: float, y1: float, x2: float, y2: float) 
 async def regen(ctx: Context) -> str:
     """도면 재생성(Regen). 주의: Regen 직후 undo는 보이는 변화 없이 Regen만 되돌릴 수 있다."""
     return await _run(ctl.regen)
+
+
+# ---------------------------------------------------------------- 백그라운드 작도
+
+@mcp.tool(structured_output=False)
+async def build_drawing_background(ctx: Context, code: str, output_path: str, base_drawing: str = "",
+                                   overwrite: bool = False, use_skills: bool = True, timeout_s: float = 300.0) -> str:
+    """백그라운드 작도: 화면 없는 AutoCAD(accoreconsole)로 LISP를 실행해 새 DWG 파일을 만든다.
+    켜져 있는 AutoCAD 화면·도면은 건드리지 않는다(AutoCAD가 꺼져 있어도 되고, 사용자가 작업 중이어도 된다).
+    사용자가 "백그라운드로", "화면 건드리지 말고 파일로 만들어 줘"라고 하거나, 큰 그림·새 도면을 만들 때 쓴다.
+    code: LISP 본문. 결과는 (write-line "..." _fp)로 쓰면 lines로 돌아온다. entmake/vla-* 외에 (command ...)도 쓸 수 있다
+    (객체 스냅 꺼짐). use_skills면 토목 명령 함수(bc:*)를 먼저 불러 둔다.
+    output_path: 저장할 .dwg 전체 경로(2018 형식). 이미 있으면 overwrite=true일 때만 덮어쓴다.
+    base_drawing: 이 도면을 열어 시작(원본은 바꾸지 않고 결과는 output_path에만 저장).
+    반환 {output, entities, seconds, bytes, lines, console}. 확인하려면 open_drawing(output_path, read_only=true) 후 capture_view."""
+    root = os.path.dirname(os.path.abspath(__file__))
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    import background
+    try:
+        return _ok(await asyncio.to_thread(background.build, code, output_path, base_drawing, overwrite, use_skills,
+                                           timeout_s))
+    except (ValueError, FileNotFoundError, FileExistsError, TimeoutError, RuntimeError) as e:
+        raise ToolError(str(e))
 
 
 # ---------------------------------------------------------------- 스킬(토목·좌표·다중 플롯 명령)
