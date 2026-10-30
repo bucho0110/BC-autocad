@@ -135,7 +135,7 @@ async def main():
             # skill_list: 전체는 가볍게, command를 주면 settings까지
             allc = await call("skill_list")
             one = await call("skill_list", command="DSTA")
-            check("skill_list 전체 70개(설정 빼고)·한 명령은 설정 포함", len(allc) == 70 and "settings" not in allc[0]
+            check("skill_list 전체 91개(설정 빼고)·한 명령은 설정 포함", len(allc) == 91 and "settings" not in allc[0]
                   and any(x["key"] == "간격" for x in one["settings"]), (len(allc), list(one)))
             # DCP 결과가 nil이면 이유를 담은 오류(닫힌 선)
             out = await call("run_lisp", code=(

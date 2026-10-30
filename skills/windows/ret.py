@@ -26,7 +26,11 @@ UNIT_WEIGHT = {6: 0.249, 10: 0.560, 13: 0.995, 16: 1.560, 19: 2.250, 22: 3.040, 
 NOTES = ["ADD %", "% 할증", "소계(%)", "표기 안 함"]
 LEN_UNITS = ["자동(소수점 있으면 m)", "mm", "m"]
 SORTS = ["상세 순서(머리 글자 처음 나온 순)", "번호 이름순"]
+FORMS = ["재료표(번호·직경·길이·본수·총길이·단위중량·총중량·비고)",
+         "단위 표기형(기호·직경·길이(M)·개수·총길이(M)·단위무게(KG/M)·총무게(TON)·할증(%,TON), 같은 직경 \")"]
 FIELDS = [
+    ("양식", "표 양식", "choice", FORMS[0], FORMS),
+    ("구분칸", "단위 표기형 왼쪽 구분 칸 (비우면 없음, | 로 줄 나눔)", "str", "콘크리트|철  근", None),
     ("구분문자", "철근 구분 문자 (쉼표로, 예 D,H,S,U)", "str", "D,H,S,U", None),
     ("할증", "할증 (%)", "real", 3.0, None),
     ("비고", "비고 할증 표기", "choice", NOTES[0], NOTES),
@@ -52,6 +56,8 @@ FIELDS = [
 ]
 DEFAULTS = {k: d for k, _l, _t, d, _c in FIELDS}
 HEAD = ["번  호", "직  경", "길     이", "본  수", "총  길  이", "단위 중량", "총  중  량", "비     고"]
+HEAD2 = [("기 호", ""), ("직 경", ""), ("길 이", "(M)"), ("개 수", ""), ("총길이", "(M)"), ("단위무게", "(KG/M)"),
+         ("총무게", "(TON)"), ("할 증", "(%,TON)")]
 TITLE = "철   근    재   료   표"
 
 # 선택 집합 _ss 덤프: 원 C<탭>핸들<탭>x<탭>y<탭>r, 문자 T<탭>핸들<탭>가운데x<탭>y<탭>내용<탭>높이<탭>스타일,
@@ -206,6 +212,7 @@ def compute(details, cfg):
     """→ 표 목록 [{grade, rows: [[...8칸]], kinds: ['row'|'sub'|'total']}] (강도별이면 여럿)."""
     pct = float(cfg["할증"])
     note = cfg["비고"]
+    form2 = cfg.get("양식") == FORMS[1]
     pri = [g.strip().upper() for g in str(cfg["우선"]).split(",") if g.strip()]
     gr_of = (lambda d: d["grade"]) if cfg["강도별"] else (lambda d: "")
     grades = sorted({gr_of(d) for d in details}, key=lambda g: pri.index(g) if g in pri else len(pri))
@@ -213,14 +220,19 @@ def compute(details, cfg):
     for g in grades:
         ds = order([d for d in details if gr_of(d) == g], cfg["정렬"])
         keys = sorted({(d["grade"], d["dia"]) for d in ds}, key=lambda k: (-k[1], pri.index(k[0]) if k[0] in pri else 99))
-        rows, kinds, tw, tw2 = [], [], 0.0, 0.0
+        rows, kinds, tw, tw2, tl_all = [], [], 0.0, 0.0, 0.0
         for k in keys:
             grp = [d for d in ds if (d["grade"], d["dia"]) == k]
             sub = 0.0
-            for d in grp:
+            for i, d in enumerate(grp):
                 # 총길이는 표에 보이는 값(소수 셋째)으로 더한다 — 개수가 소수(3.33)면 곱이 길어진다
                 tl = float(C.fmt(float(C.fmt(d["L"] / 1000.0, 3)) * float(d["N"]), 3))
                 sub += tl
+                if form2:  # 같은 직경 둘째 줄부터 직경 칸은 " (견본)
+                    rows.append([d["no"], "%s%d" % k if i == 0 else '"', C.fmt(d["L"] / 1000.0, 3), str(d["N"]),
+                                 C.fmt(tl, 3), "", "", ""])
+                    kinds.append("row")
+                    continue
                 rows.append([d["no"], "%s%d" % k, C.fmt(d["L"] / 1000.0, 3), str(d["N"]), C.fmt(tl, 3), "", "",
                              ("ADD %g%%" % pct if note == NOTES[0] else "%g%% 할증" % pct if note == NOTES[1] else "")
                              if not rows and pct > 0 else ""])  # 표 첫 줄에만(견본)
@@ -228,6 +240,12 @@ def compute(details, cfg):
             w = float(C.fmt(sub * UNIT_WEIGHT[k[1]] / 1000.0, 3))
             w2 = float(C.fmt(sub * UNIT_WEIGHT[k[1]] * (1 + pct / 100.0) / 1000.0, 3))
             tw, tw2 = tw + w, tw2 + w2
+            tl_all += sub
+            if form2:  # 소계: 총길이·단위무게·총무게·할증 '0.192(3%)'
+                rows.append(["소   계", "", "", "", C.fmt(sub, 3), C.fmt(UNIT_WEIGHT[k[1]], 3), C.fmt(w, 3),
+                             ("%s(%g%%)" % (C.fmt(w2, 3), pct)) if pct > 0 else ""])
+                kinds.append("sub")
+                continue
             ws = C.fmt(w, 3) + "TON"
             if note == NOTES[2] and pct > 0:
                 ws, extra = "%sTON(%g%%)" % (C.fmt(w2, 3), pct), ""
@@ -236,8 +254,11 @@ def compute(details, cfg):
             rows.append(["소             계", "", "", "", C.fmt(sub, 3), "%sKg/M" % C.fmt(UNIT_WEIGHT[k[1]], 3), ws, extra])
             kinds.append("sub")
         tot = C.fmt(tw2 if note == NOTES[2] and pct > 0 else tw, 3) + "TON"
-        rows.append(["총             계", "", "", "", "", "", tot,
-                     (C.fmt(tw2, 3) + "TON") if note in NOTES[:2] and pct > 0 else ""])
+        if form2:
+            rows.append(["총   계", "", "", "", C.fmt(tl_all, 3), "", C.fmt(tw, 3), C.fmt(tw2, 3) if pct > 0 else ""])
+        else:
+            rows.append(["총             계", "", "", "", "", "", tot,
+                         (C.fmt(tw2, 3) + "TON") if note in NOTES[:2] and pct > 0 else ""])
         kinds.append("total")
         tables.append({"grade": g, "rows": rows, "kinds": kinds, "weight": float(C.fmt(tw, 3)),
                        "weight_add": float(C.fmt(tw2, 3))})
@@ -246,6 +267,8 @@ def compute(details, cfg):
 
 def table_lisp(tbl, origin, cfg):
     """표 하나. origin = 표 왼쪽 위(제목 줄 위 모서리). (LISP, 표 너비)."""
+    if cfg.get("양식") == FORMS[1]:
+        return table2_lisp(tbl, origin, cfg)
     h, rh = float(cfg["문자높이"]), float(cfg["문자높이"]) * float(cfg["칸높이"])
     ws = [float(v) * h for v in str(cfg["열너비"]).split(",")][:8]
     ws += [10 * h] * (8 - len(ws))
@@ -314,6 +337,83 @@ def table_lisp(tbl, origin, cfg):
             text(xs[7] - 0.4 * h, y, r[6], "MR")
             if nc == 8:
                 text(xs[8] - 0.4 * h, y, r[7], "MR")
+    out.append('(setvar "TEXTSTYLE" _ts)')
+    return "".join(out), W
+
+
+def table2_lisp(tbl, origin, cfg):
+    """단위 표기형: 머리 두 줄(이름·단위), 왼쪽 구분 칸(선택), 같은 직경 ", 할증 칸 '0.192(3%)'."""
+    h, rh = float(cfg["문자높이"]), float(cfg["문자높이"]) * float(cfg["칸높이"])
+    ws = [float(v) * h for v in str(cfg["열너비"]).split(",")][:8]
+    ws += [10 * h] * (8 - len(ws))
+    gub = [s.strip() for s in str(cfg["구분칸"]).split("|") if s.strip()]
+    gw = 6 * h if gub else 0.0
+    xs = [gw]
+    for w in ws:
+        xs.append(xs[-1] + w)
+    W = xs[-1]
+    ox, oy = float(origin[0]), float(origin[1])
+    lt, ll, lb = ls(cfg["문자레이어"]), ls(cfg["선레이어"]), ls(cfg["테두리레이어"])
+    st = ('(if (tblsearch "STYLE" "%s") (setvar "TEXTSTYLE" "%s"))' % (ls(cfg["문자스타일"]), ls(cfg["문자스타일"]))
+          if cfg["문자스타일"] else "")
+    out = ['(setq _ts (getvar "TEXTSTYLE")) %s (bc:ensure-layer "%s" 7) (bc:ensure-layer "%s" 1) (bc:ensure-layer "%s" 3)'
+           % (st, lt, ll, lb)]
+
+    def line(x1, y1, x2, y2, lay):
+        out.append('(bc:line (list %.6f %.6f 0.0) (list %.6f %.6f 0.0) "%s")' % (ox + x1, oy + y1, ox + x2, oy + y2, lay))
+
+    def text(x, y, s, just, hh=h):
+        if s != "":
+            out.append('(bc:text (list %.6f %.6f 0.0) "%s" %.6f "%s" "%s" 0.0)' % (ox + x, oy + y, ls(s), hh, lt, just))
+
+    rows, kinds = tbl["rows"], tbl["kinds"]
+    top = 2 * rh  # 머리 두 줄
+    ys = [0.0, -top] + [-top - i * rh for i in range(1, len(rows) + 1)]
+    bot = ys[-1]
+    text(W / 2, 6 * h, TITLE, "MC", float(cfg["제목높이"]))
+    text(gw + 1.6 * h, 0.7 * h, cfg["좌상단"], "BL")
+    text(W, 0.4 * h, cfg["우상단"], "BR")
+    for i, y in enumerate(ys):
+        line(0 if i in (0, len(ys) - 1) else gw, y, W, y, lb if i in (0, 1, len(ys) - 2, len(ys) - 1) else ll)
+    line(0, 0, 0, bot, lb)
+    line(W, 0, W, bot, lb)
+    if gw:
+        line(gw, 0, gw, bot, ll)
+        for k, s in enumerate(gub):
+            text(gw / 2, bot / 2 + (len(gub) / 2.0 - k - 0.5) * 1.8 * h, s, "MC")
+    for j in range(4, 8):
+        line(xs[j], 0, xs[j], bot, ll)
+    plain = [True] + [k == "row" for k in kinds]  # 머리 + 철근 줄 묶음마다 기호~개수 세로선
+    y_of = [0.0] + ys[1:]
+    i, n = 0, len(plain)
+    while i < n:
+        if plain[i]:
+            e = i
+            while e < n and plain[e]:
+                e += 1
+            for j in (1, 2, 3):
+                line(xs[j], y_of[i], xs[j], y_of[e], ll)
+            i = e
+        else:
+            i += 1
+    for j, (name, unit) in enumerate(HEAD2):
+        cx = (xs[j] + xs[j + 1]) / 2
+        if unit:
+            text(cx, -0.6 * rh, name, "MC")
+            text(cx, -1.4 * rh, unit, "MC")
+        else:
+            text(cx, -rh, name, "MC")
+    for i, (r, k) in enumerate(zip(rows, kinds)):
+        y = -top - (i + 0.5) * rh
+        if k == "row":
+            for j in (0, 1):
+                text((xs[j] + xs[j + 1]) / 2, y, r[j], "MC")
+            for j in (2, 3, 4):
+                text(xs[j + 1] - 0.4 * h, y, r[j], "MR")
+        else:
+            text((xs[0] + xs[4]) / 2, y, r[0], "MC")
+            for j in (4, 5, 6, 7):
+                text(xs[j + 1] - 0.4 * h, y, r[j], "MR")
     out.append('(setvar "TEXTSTYLE" _ts)')
     return "".join(out), W
 

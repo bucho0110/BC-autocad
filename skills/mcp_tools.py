@@ -14,6 +14,7 @@ import os
 import subprocess
 import time
 
+from skills import mcp_more
 from skills import registry
 from skills.common import coords as C
 from skills.common import lisplib
@@ -62,7 +63,7 @@ RUN_SPECS = {
     "CFM": "handle(중심선), settings.방식 '그려진 횡단선 선택'(+ section_handles) | '측점 간격마다' | '엑셀 측점 목록'(+ stations [측점…]), terrain_handles(선택), base_point [x,y](선택: 첫 횡단 중심에 작도) → sections [{station, dist, ground [[거리(왼쪽 −), EL]], center_el}]",
     "ART": "handles(문자), point [x,y](수평·수직 정렬 기준점, 간격 조정만이면 생략), settings 방식·정렬점·간격함께·간격방식·간격·이격 → 정렬한 문자 수",
     "CTS": "handles(문자), settings.방식 '문자 외곽선'(트루타입 TEXT만, 정밀도·두께%)|'문자 복사'(X·Y 문자 높이 배수), 그림자색·원본색·레이어 → made, skipped [{handle, reason}] (그림자는 원본 뒤로)",
-    "RET": "handles(철근 상세의 원·번호 블록·문자·밑줄 선 전부), insert_point [x,y](선택: 표 왼쪽 위 — 없으면 계산만), mark_bad(기본 true: 인식 못 한 원에 '철근-인식안됨' 광선) → details 수, tables [{grade, rows [번호, 직경, 길이(m), 본수, 총길이, 단위중량, 총중량, 비고]}], unrecognized, duplicates. settings 할증·비고·강도별·길이단위(자동: 소수점 있으면 m)·정렬",
+    "RET": "handles(철근 상세의 원·번호 블록·문자·밑줄 선 전부), insert_point [x,y](선택: 표 왼쪽 위 — 없으면 계산만), mark_bad(기본 true: 인식 못 한 원에 '철근-인식안됨' 광선) → details 수, tables [{grade, rows [번호, 직경, 길이(m), 본수, 총길이, 단위중량, 총중량, 비고]}], unrecognized, duplicates. settings 할증·비고·강도별·길이단위(자동: 소수점 있으면 m)·정렬·양식(재료표 | 단위 표기형: 머리 두 줄, 같은 직경 \", 할증 '0.192(3%)')",
     "INN": "settings.내용('도면 (?/6)'처럼 ? 자리), 시작값·증분·자리수·소수·천단위·16진수 + ① 복사: source_handle, base_point, points [[x,y]…] ② 고치기: handles(고른 순서대로) → values",
     "QCAR": "boundary_handle(용지 경계 닫힌 폴리선), alignment_handle(선택: 번호 순서용 선형), handles(선택: 지적·지번·행정구역 객체, 없으면 도면 전체 LWPOLYLINE·문자 — settings 지적선레이어·지번문자레이어로 가름), draw(기본 true: 면적 산출선·번호) → rows [행정구역, 번호, 지번, 지목, 면적, 편입면적, 전체편입, 비고]·summary(합계·경계·차이=합계−경계)",
     "CMOB": "handles(선택, 없으면 도면 전체 대상 종류), settings.여유도(2~10) → 경계 고리 수·정점 수",
@@ -91,6 +92,7 @@ RUN_SPECS = {
     "RCSE": "handle(평면 선형), reverse(선택), spec(선택)",
     "DRRE": "mode 'template'(handle, reverse → 양식 행) 또는 'draw'(rows [[누가거리, 구분, R, 경사, 길이(높이), 밑다짐폭, 중심~호안머리]], origin [x,y]) → 구간·면적",
     "CSAR": "pick {centers [[x, y아래]], win [dx0,dy0,dx1,dy1], frame_handle, frame [insx,insy,minx,miny,maxx,maxy], area [ax0,ay0,ax1,ay1](도곽 삽입점 기준), extra [핸들], base [x,y]}",
+    **mcp_more.RUN_SPECS,
     "DDGP": "rows(첫 행은 반드시 한글 머리글 — 열을 이름으로 찾는다: 측점·하상고·좌/우 계획고·하폭·제방폭·제내지경사·제외지경사·호안경사·HWL·SWL·여유고), sample_handles(선택, DCEM과 같음), dry_run(선택)",
 }
 
@@ -419,7 +421,8 @@ def _dump_body(handles, types, usealign=False) -> str:
 
 HANDLE_KEYS = ("handle", "handles", "others", "two_lines", "curve_handle", "base_handle", "detail_handle",
                "ground_handle", "bottom_handle", "target_handle", "replace_handle", "terrain_handles", "section_handles",
-               "boundary_handle", "alignment_handle", "source_handle")
+               "boundary_handle", "alignment_handle", "source_handle", "struct_handles",
+               "detail_handles")
 LAYER_PICK = ("LOL", "LOF", "LFR", "FRE", "LLO", "LUL", "LOE")  # 레이어 이름 또는 객체 핸들로 고르는 레이어 명령
 LAYER_ALL = ("LON", "OLO", "LTH", "ULA")  # 인자 없이 전체 레이어에 하는 명령
 _CURVES = {"LINE", "LWPOLYLINE", "POLYLINE", "ARC", "SPLINE"}
@@ -437,7 +440,9 @@ KIND_RULES = {"CSS": {"ground_handle": {"LWPOLYLINE", "POLYLINE", "LINE"}},
               # FE·FW handle은 정점을 읽는다(bc:verts) — 호·스플라인은 정점이 없어 빈 결과가 된다
               "FE": {"handle": {"LINE", "LWPOLYLINE", "POLYLINE"}}, "FW": {"handle": {"LINE", "LWPOLYLINE", "POLYLINE"}},
               "DCEN": {"handles": {"CIRCLE", "ARC"}, "two_lines": {"LINE", "LWPOLYLINE", "POLYLINE"}}, "DSLO": {"handles": _CURVES},
-              "DFB": {"handle": _CURVES}, "SLEL": {"curve_handle": _CURVES}, "DRRE": {"handle": {"LWPOLYLINE"}}}
+              "DFB": {"handle": _CURVES}, "SLEL": {"curve_handle": _CURVES}, "DRRE": {"handle": {"LWPOLYLINE"}},
+              "DLS": {"handle": {"LWPOLYLINE", "POLYLINE", "LINE"}}, "GSE": {"handle": {"LWPOLYLINE", "POLYLINE", "LINE"}},
+              "CFB": {"ground_handle": {"LWPOLYLINE", "POLYLINE", "LINE"}}, "DMT": {"handle": {"LWPOLYLINE", "POLYLINE"}}}
 # 견본 단면 핸들 4개의 자리별 종류(DCEM·HWLM·DDGP sample_handles: 지반선, 중심선, 측점 문자, 지반고 문자)
 SAMPLE_KINDS = ({"LWPOLYLINE", "POLYLINE", "LINE"}, {"LINE", "LWPOLYLINE"}, {"TEXT", "MTEXT"}, {"TEXT", "MTEXT"})
 
@@ -468,7 +473,7 @@ def _check_handles(ctl, lib, doc, cmd, a, timeout_s):
         v = a.get(k)
         if v in (None, ""):
             continue
-        if k in ("handles", "others", "two_lines", "terrain_handles", "section_handles"):
+        if k in ("handles", "others", "two_lines", "terrain_handles", "section_handles", "struct_handles", "detail_handles"):
             if isinstance(v, str):
                 raise ValueError("%s는 핸들 목록(JSON 배열)이어야 합니다: %r" % (k, v))
             vs = [str(x) for x in v]
@@ -518,6 +523,8 @@ def run(ctl, cmd: str, a: dict, budget: float = 120.0) -> dict:
     lib = lisplib.ensure_expr()
     _check_handles(ctl, lib, doc, cmd, a, t1)
 
+    if cmd in mcp_more.CMDS:
+        return mcp_more.run(ctl, doc, lib, cmd, a, t1, merged_cfg, lq, lambda code: _draw(ctl, doc, lib, code, t1), _need)
     if cmd == "MUIN":
         from skills.windows import muin
         return muin.run_mcp(ctl, doc, lib, a, t1)
