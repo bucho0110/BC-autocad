@@ -15,7 +15,7 @@ from .icon_b64 import ICON_B64
 from .paths import DATA, LOGS
 from . import settings as S
 
-VERSION_NUM = "0.3.0"  # 패키지 버전(install.py의 플러그인 AppVersion과 같게). 사용자 시험 전이라 0.x
+VERSION_NUM = "0.4.0"  # 패키지 버전(install.py의 플러그인 AppVersion과 같게). 사용자 시험 전이라 0.x
 VERSION = "BC." + VERSION_NUM
 
 BG = "#1E1F22"

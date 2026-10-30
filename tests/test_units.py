@@ -91,6 +91,16 @@ _b = '(bc:text "a)(" 1)' * 50
 check("긴 LISP 식 경계 나누기", len(split_forms(_b, 100)) > 1 and "".join(split_forms(_b, 100)) == _b
       and all(x.startswith("(") and x.endswith(")") for x in split_forms(_b, 100)))
 
+# LISP 함수 이름 중복: 파일이 이름순으로 불려 나중 것이 앞의 것을 덮어쓴다(CR의 bc:bbox가 공통 bc:bbox를 덮어써 CSAR이 깨진 일)
+import glob  # noqa: E402
+import re  # noqa: E402
+_defs = {}
+for _f in sorted(glob.glob(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skills", "lisp", "*.lsp"))):
+    for _m in re.finditer(r"^\(defun\s+([^\s(]+)", open(_f, encoding="utf-8-sig").read(), re.M):
+        _defs.setdefault(_m.group(1).lower(), []).append(os.path.basename(_f))
+_dup = {k: v for k, v in _defs.items() if len(v) > 1}
+check("LISP 함수 이름 중복 없음", not _dup, _dup)
+
 # 좌표 소수 표기: 사사오입(보이는 10진 값 기준), 끝 0 유지
 _f = [C.fmt(7.125, 2), C.fmt(2.675, 2), C.fmt(100, 4), C.fmt(110.5, 0), C.fmt(-3, 2), C.fmt(1234567.12345, 4)]
 check("좌표 소수 사사오입", _f == ["7.13", "2.68", "100.0000", "111", "-3.00", "1234567.1235"], _f)

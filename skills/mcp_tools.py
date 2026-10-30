@@ -31,6 +31,21 @@ RUN_SPECS = {
     "ZBC": "handle(폴리선), table_point",
     "WCD": "handle(사각 폴리선)",
     "XYB": "handles, base_point, sx, sy",
+    "MUIN": "files [경로…](.dwg·.dxf), explode(기본 true — false면 파일 이름 블록) → 파일별 넣은 객체 수. 원래 좌표 그대로",
+    "CR": "handles(문자들), p1·p2(사각형 두 모서리) 또는 target_handle(그 객체 가운데) → 옮긴 문자 수",
+    "LOL": "layers [레이어 이름…] 또는 handles [객체 핸들…] — 이 레이어만 켜고 나머지 끔 → 바뀐 레이어 수",
+    "LOF": "layers 또는 handles — 그 레이어 끔",
+    "LON": "(인자 없음) 모든 레이어 켬",
+    "OLO": "(인자 없음) 꺼져 있던 레이어만 켜고 켜져 있던 것은 끔(꺼진 게 없으면 0)",
+    "LFR": "layers 또는 handles — 그 레이어 동결(현재 레이어는 제외)",
+    "FRE": "layers 또는 handles — 그 레이어 외 모두 동결",
+    "LTH": "(인자 없음) 모든 레이어 동결 해제",
+    "LLO": "layers 또는 handles — 그 레이어 잠금",
+    "LUL": "layers 또는 handles — 그 레이어 잠금 해제",
+    "ULA": "(인자 없음) 모든 레이어 잠금 해제",
+    "LOE": "layers 또는 handles — 그 레이어 외 모두 잠금",
+    "SCL": "layer(이름) 또는 handle(그 객체의 레이어) → 현재 레이어 이름",
+    "CCL": "handles — 현재 레이어로 옮김(잠긴 레이어 객체는 그대로) → 옮긴 객체 수",
     "CEX": "handles(선택, 없으면 도면 전체 대상 종류), csv_path(선택) → rows(기본 토목 좌표 [북, 동] — settings 좌표=수학이면 [x, y]). 2000행 넘으면 truncated — 전부는 csv_path로",
     "CIM": "rows [[...]] — 열 순서는 settings.열(기본 '번호,X,Y' 3열, 토목 좌표 X=북). [[x, y]]만 줄 때는 settings {\"열\": \"X,Y\", \"좌표\": \"수학\"}",
     "RCE": "창 전용 — 사람이 점을 하나씩 찍는 명령이라 skill_run으로는 못 한다. skill_open(\"RCE\")",
@@ -245,6 +260,38 @@ def body_for(cmd: str, a: dict) -> str:
                 " (progn (setq _r (bc:xyb-core _l %s %s %s)) %s))"
                 % (" ".join(lq(h) for h in a["handles"]), lnum(a["sx"]), lnum(a["sy"]),
                    lpt(a["base_point"]), lnum(a["sx"]), lnum(a["sy"]), emit))
+    if cmd in LAYER_PICK:
+        lays, hs = a.get("layers") or [], a.get("handles") or []
+        if not lays and not hs:
+            raise ValueError("%s: layers(레이어 이름 목록) 또는 handles(객체 핸들 목록)가 필요합니다" % cmd)
+        return ("(setq _n (append (list %s) (bc:lay-of (mapcar 'handent (list %s)))))"
+                " (if (setq _w (bc:lay-missing _n)) (write-line (strcat \"ERR\" _d _w) _fp)"
+                " (progn (setq _r (bc:%s-core _n)) %s))"
+                % (" ".join(lq(x) for x in lays), " ".join(lq(h) for h in hs), cmd.lower(), emit))
+    if cmd in LAYER_ALL:
+        return "(setq _r (bc:%s-core)) %s" % (cmd.lower(), emit)
+    if cmd == "SCL":
+        if a.get("layer"):
+            name = lq(a["layer"])
+        else:
+            _need(a, "handle")
+            name = "(cdr (assoc 8 (entget (handent %s))))" % lq(a["handle"])
+        return ("(setq _n %s) (if (setq _w (bc:lay-missing (list _n))) (write-line (strcat \"ERR\" _d _w) _fp)"
+                " (progn (setq _r (bc:scl-core _n)) %s))" % (name, emit))
+    if cmd == "CCL":
+        _need(a, "handles")
+        return "(setq _r (bc:ccl-core (mapcar 'handent (list %s)))) %s" % (" ".join(lq(h) for h in a["handles"]), emit)
+    if cmd == "CR":
+        _need(a, "handles")
+        if a.get("target_handle"):
+            tgt = "(bc:obj-center (handent %s))" % lq(a["target_handle"])
+        else:
+            _need(a, "p1", "p2")
+            tgt = "(bc:mid2 %s %s)" % (lpt(a["p1"]), lpt(a["p2"]))
+        return ("(setq _l (vl-remove-if-not (function (lambda (e) (member (cdr (assoc 0 (entget e))) (list \"TEXT\" \"MTEXT\"))))"
+                " (mapcar 'handent (list %s))))"
+                " (if _l (progn (setq _r (bc:cr-core _l %s)) %s) (write-line (strcat \"ERR\" _d \"handles에 문자(TEXT·MTEXT)가 없습니다\") _fp))"
+                % (" ".join(lq(h) for h in a["handles"]), tgt, emit))
     rev = "T" if a.get("reverse") else "nil"
     if cmd == "DCP":
         _need(a, "handles")
@@ -336,7 +383,9 @@ def _dump_body(handles, types, usealign=False) -> str:
 
 
 HANDLE_KEYS = ("handle", "handles", "others", "two_lines", "curve_handle", "base_handle", "detail_handle",
-               "ground_handle", "bottom_handle")
+               "ground_handle", "bottom_handle", "target_handle")
+LAYER_PICK = ("LOL", "LOF", "LFR", "FRE", "LLO", "LUL", "LOE")  # 레이어 이름 또는 객체 핸들로 고르는 레이어 명령
+LAYER_ALL = ("LON", "OLO", "LTH", "ULA")  # 인자 없이 전체 레이어에 하는 명령
 _CURVES = {"LINE", "LWPOLYLINE", "POLYLINE", "ARC", "SPLINE"}
 # 명령 → {인자 이름: 받는 개체 종류} — 엉뚱한 개체(문자 등)를 넘기면 허공에 그리기 전에 거절한다
 KIND_RULES = {"CSS": {"ground_handle": {"LWPOLYLINE", "POLYLINE", "LINE"}},
@@ -431,6 +480,9 @@ def run(ctl, cmd: str, a: dict, budget: float = 120.0) -> dict:
     lib = lisplib.ensure_expr()
     _check_handles(ctl, lib, doc, cmd, a, t1)
 
+    if cmd == "MUIN":
+        from skills.windows import muin
+        return muin.run_mcp(ctl, doc, lib, a, t1)
     if cmd == "CEX":
         from skills.windows import cex
         cfg = merged_cfg("CEX", cex.DEFAULTS, a.get("settings"))

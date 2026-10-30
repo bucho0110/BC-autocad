@@ -15,6 +15,7 @@
 (defun c:RCSE () (bc:open-window "RCSE") (princ))  ; 평면 대횡단 작성
 (defun c:CSAR () (bc:open-window "CSAR") (princ))  ; 횡단면 도곽 배치
 (defun c:HWLM () (bc:open-window "HWLM") (princ))  ; 횡단 계획홍수위 일괄 표기
+(defun c:MUIN () (bc:open-window "MUIN") (princ))  ; 여러 도면 원래 좌표로 불러오기
 (defun c:MPL () (bc:open-window "MPL") (princ))  ; 다중 플롯
 (defun c:MPLOT () (bc:fn-MPL))
 
@@ -67,7 +68,23 @@
   (princ "\n  BCHWLM  횡단 계획홍수위 일괄 표기 (대화상자)")
   (princ "\n  ── 수정")
   (princ "\n  BCXYB   X·Y 축척 개별 변환")
+  (princ "\n  BCCR    문자를 사각형 가운데로 정렬")
+  (princ "\n  ── 레이어")
+  (princ "\n  BCLOL   고른 레이어만 켜기")
+  (princ "\n  BCLOF   고른 레이어 끄기")
+  (princ "\n  BCLON   레이어 전체 켜기")
+  (princ "\n  BCOLO   꺼진 레이어만 표시")
+  (princ "\n  BCLFR   고른 레이어 동결")
+  (princ "\n  BCFRE   고른 레이어 외 전체 동결")
+  (princ "\n  BCLTH   레이어 전체 동결 해제")
+  (princ "\n  BCLLO   고른 레이어 잠금")
+  (princ "\n  BCLUL   고른 레이어 잠금 해제")
+  (princ "\n  BCULA   레이어 전체 잠금 해제")
+  (princ "\n  BCLOE   고른 레이어 외 전체 잠금")
+  (princ "\n  BCSCL   객체 레이어를 현재 레이어로")
+  (princ "\n  BCCCL   객체를 현재 레이어로 이동")
   (princ "\n  ── 유틸리티")
+  (princ "\n  BCMUIN  여러 도면 원래 좌표로 불러오기 (대화상자)")
   (princ "\n  BCMPL   다중 플롯 (대화상자)")
   (princ "\n  ※ 명령은 BC를 붙여 입력합니다(FE → BCFE). 단축 이름은 BCHELP 대화상자에서 활성화합니다.")
   (if bc:*short* (progn (princ "\n  ※ 활성화된 단축 이름:") (foreach _k bc:*short* (princ (strcat " " _k))) (princ "  (모두 해제: BCOFF)")))
