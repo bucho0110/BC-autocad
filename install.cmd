@@ -23,5 +23,7 @@ if errorlevel 1 (
 )
 echo AutoCAD를 실행하고 도면을 하나 열어 둔 상태에서 설치를 진행하십시오.
 python "%~dp0install\install.py" --all
+rem AI 에이전트 등 키 입력을 할 수 없는 곳에서 실행할 때: install.cmd /nopause
+if /i "%~1"=="/nopause" exit /b
 echo.
 pause

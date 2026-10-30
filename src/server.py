@@ -770,6 +770,26 @@ async def skill_run(ctx: Context, command: str, args: str = "{}", timeout: float
     return await _run(mt.run, ctl, command, a, outer, timeout=outer)
 
 
+@mcp.tool(structured_output=False)
+async def bug_report(ctx: Context, problem: str = "", command: str = "", error_text: str = "", log_lines: int = 40) -> str:
+    """오류 보고서 만들기 — 사용자가 "안 돼", "오류 보고서 만들어 줘"라고 하면 부른다. AutoCAD가 꺼져 있어도 된다.
+    problem: 사용자가 말한 증상(무엇을 하려 했고 무엇이 일어났는지, 사용자의 말 그대로).
+    command: 문제가 난 BC 명령 이름(예 RET, 없으면 비움) — 그 명령의 저장된 설정과 창 로그를 넣는다.
+    error_text: 받은 오류 원문(도구 오류 메시지·AutoCAD 명령줄 문구).
+    → text(GitHub Issues에 붙일 마크다운), path(같은 내용 파일). 사용자 폴더·이름·도면 파일 이름은 가린다.
+    사용자에게 text를 보여 주고, 회사·과업 정보가 없는지 확인받은 뒤 https://github.com/bucho0110/BC-autocad/issues 에
+    올리도록(또는 파일을 전달하도록) 안내한다. 도면 내용은 모으지 않는다."""
+    import report
+    acad, err = None, ""
+    try:
+        acad = await asyncio.wait_for(ctl.executor.call(report.acad_env, ctl, timeout=15), 20)
+    except Exception as e:  # noqa: BLE001 — AutoCAD가 꺼졌거나 막혀 있어도 보고서는 만든다
+        err = "%s: %s" % (type(e).__name__, e)
+    text, path = report.build(command, problem, error_text, acad, err, max(5, min(200, int(log_lines))))
+    return _ok({"text": text, "path": path,
+                "next": "사용자에게 text를 보여 주고 개인·회사 정보가 없는지 확인받은 뒤 GitHub Issues에 올리도록 안내하세요."})
+
+
 def main():
     mcp.run()
 

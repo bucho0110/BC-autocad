@@ -7,3 +7,10 @@ venv/
 *.dwl
 *.dwl2
 *.bak
+*.dwg
+*.dxf
+~$*
+Thumbs.db
+.vscode/
+.idea/
+!examples/*.dwg

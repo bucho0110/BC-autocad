@@ -82,6 +82,9 @@ def check_python(py):
     r = subprocess.run([py, "-c", "import pypdf"], capture_output=True, text=True)
     if r.returncode != 0:
         say("참고: pypdf가 없어 다중 플롯의 PDF 병합·사용자 용지 변환은 꺼집니다.")
+    r = subprocess.run([py, "-c", "import fontTools"], capture_output=True, text=True)
+    if r.returncode != 0:
+        say("참고: fonttools가 없어 CTS 문자 외곽선 그림자는 동작하지 않습니다(설치: \"%s\" -m pip install fonttools)." % py)
     return True
 
 
@@ -139,14 +142,14 @@ def write_bundle_xml():
     """PackageContents.xml — AutoCAD 2021(R24.0) 이상, 도면마다(PerDocument) 켤 때 불러온다.
     2021부터 LISP이 UTF-8 .lsp(LISPSYS=1)와 (open … "utf8")을 지원한다. 2020 이하는 이 둘이 없어 대상에서 뺀다."""
     xml = """<?xml version="1.0" encoding="utf-8"?>
-<ApplicationPackage SchemaVersion="1.0" AppVersion="0.4.0" ProductType="Application" Name="BC AutoCAD"
+<ApplicationPackage SchemaVersion="1.0" AppVersion="0.5.0" ProductType="Application" Name="BC AutoCAD"
     Description="BC AutoCAD 토목 명령(BCFE·BCXY·BCMPL…, 목록 BCHELP)" Author="BC"
     ProductCode="{pc}" UpgradeCode="{uc}">
   <CompanyDetails Name="BC" />
   <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.0" />
   <Components Description="LISP">
     <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.0" />
-    <ComponentEntry AppName="BCAutoCAD" Version="0.4.0" ModuleName="./Contents/bc_autocad.lsp"
+    <ComponentEntry AppName="BCAutoCAD" Version="0.5.0" ModuleName="./Contents/bc_autocad.lsp"
         AppDescription="BC AutoCAD 스킬 명령 불러오기" LoadOnCommandInvocation="False" LoadOnAutoCADStartup="True"
         PerDocument="True" />
   </Components>
