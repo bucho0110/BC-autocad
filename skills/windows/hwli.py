@@ -74,7 +74,7 @@ def interpolate(tbl, pairs, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "기본설계 값으로 실시설계 보간", size="580x600")
+        super().__init__(CMD, "측점 값 보간(기본→실시설계)", size="580x600")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

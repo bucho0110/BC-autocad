@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""RCSE 하천 평면 대횡단 — 횡단면도의 지반 EL을 평면 선형의 측점 수직선 위에 EL 간격마다 문자로 옮겨 쓴다.
+"""RCSE 평면 대횡단 작성 — 횡단면도의 지반 EL을 평면 선형의 측점 수직선 위에 EL 간격마다 문자로 옮겨 쓴다.
 
 횡단과 선형이 같은 도면에 있을 때. 단면은 견본으로 찾고(skills/common/xsec.py), 측점(누가거리)으로 선형 위 위치를 정한다.
 중심에서 'EL 간격'마다 지반선 높이를 선형 보간해 평면에 EL 문자를 쓰고, 측점 문자·횡단 선을 함께 그린다.
@@ -119,7 +119,7 @@ def plan_items(secs, L, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "하천 평면 대횡단", size="560x700")
+        super().__init__(CMD, "평면 대횡단 작성", size="560x700")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

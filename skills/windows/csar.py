@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""CSAR 도곽에 횡단 배치 — 흩어진 횡단면을 도곽(블록) 사본마다 X×Y 칸에 순서대로 옮겨 붙인다.
+"""CSAR 횡단면 도곽 배치 — 흩어진 횡단면을 도곽(블록) 사본마다 X×Y 칸에 순서대로 옮겨 붙인다.
 
 순서: 견본 중심선 → 견본 단면의 선택 범위(두 구석) → 배치할 중심선들 → 도곽 블록 → 도곽 안 배치 영역(두 구석)
 → (선택) 도곽과 함께 복사할 객체 → 첫 도곽 삽입점.
@@ -184,7 +184,7 @@ def run_plan(lisp, lisp_group, pick, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "도곽에 횡단 배치", size="560x520")
+        super().__init__(CMD, "횡단면 도곽 배치", size="560x520")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

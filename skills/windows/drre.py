@@ -231,7 +231,7 @@ def draw_lisp(res, cfg, origin):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "호안 전개도", size="560x600")
+        super().__init__(CMD, "호안 전개도 작도", size="560x600")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

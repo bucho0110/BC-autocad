@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DIBC 선형 이격 거리 조회 — 기준 선형의 측점마다 수직선을 그어 다른 선들과의 거리(좌 +, 우 −)를 잰다.
+"""DIBC 측점별 이격 거리 산정 — 기준 선형의 측점마다 수직선을 그어 다른 선들과의 거리(좌 +, 우 −)를 잰다.
 
 하폭·제방 간격처럼 측점별 폭을 엑셀로 뽑을 때 쓴다. table()은 창 없이도 쓴다(MCP run_skill).
 """
@@ -74,7 +74,7 @@ def table(rows, items, n_other, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "선형 이격 거리 조회", size="560x520")
+        super().__init__(CMD, "측점별 이격 거리 산정", size="560x520")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

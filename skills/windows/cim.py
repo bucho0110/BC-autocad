@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""CIM 좌표 가져오기 — 엑셀 선택 범위나 텍스트 파일의 좌표로 폴리선·점·번호·Z 문자·블록을 그린다.
+"""CIM 좌표 목록으로 작도 — 엑셀 선택 범위나 텍스트 파일의 좌표로 폴리선·점·번호·Z 문자·블록을 그린다.
 
 build_lisp()는 창 없이도 쓴다(MCP run_skill).
 """
@@ -107,7 +107,7 @@ def build_lisp(pts, cfg) -> str:
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "좌표 가져오기", size="560x720")
+        super().__init__(CMD, "좌표 목록으로 작도", size="560x720")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

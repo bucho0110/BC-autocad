@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""FPEL 종단 여러 EL 찾아 표기 — 엑셀 [측점(누가거리), 찾을 EL, 표기1, 표기2]로 종단도 위 점을 찾아 표기.
+"""FPEL 종단도 다중 EL 표기 — 엑셀 [측점(누가거리), 찾을 EL, 표기1, 표기2]로 종단도 위 점을 찾아 표기.
 
 종단 시작점(도면 점)과 그 점의 EL을 기준으로
   x = 시작점 x + (누가거리 − 시작 거리) × 1000 / H축척
@@ -90,7 +90,7 @@ def build_lisp(items, cfg, sp, el0) -> str:
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "종단 여러 EL 찾아 표기", size="560x660")
+        super().__init__(CMD, "종단도 다중 EL 표기", size="560x660")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

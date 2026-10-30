@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DDGP 하천 지반선에 일괄 계획선 — 엑셀의 측점별 하상고·계획고·하폭·제방폭·경사로 횡단면마다 제방 계획선.
+"""DDGP 횡단 계획선 일괄 작도 — 엑셀의 측점별 하상고·계획고·하폭·제방폭·경사로 횡단면마다 제방 계획선.
 
 한 쪽(좌·우) 계획선: 하폭 끝(법선, 하상고) → 제외지(앞비탈) 경사로 계획고까지(호안 경사가 있으면 H.W.L까지는 호안 경사)
 → 둑마루 폭 수평 → 제내지(뒷비탈) 경사로 내려가 지반선과 만나는 곳까지. 하상선은 좌·우 법선 사이(지반이 하상보다 낮은 곳은 끊기 선택).
@@ -237,7 +237,7 @@ def build_lisp(sections, table, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "하천 지반선에 일괄 계획선", size="580x600")
+        super().__init__(CMD, "횡단 계획선 일괄 작도", size="580x600")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

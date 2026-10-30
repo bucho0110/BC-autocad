@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DTIN 삼각망 그리기 — Z가 있는 점·블록·선 정점(또는 EL 문자)으로 들로네 삼각망(3D면)을 만든다.
+"""DTIN 삼각망 작성 — Z가 있는 점·블록·선 정점(또는 EL 문자)으로 들로네 삼각망(3D면)을 만든다.
 
 triangulate()는 표준 라이브러리만 쓰는 Bowyer-Watson이다(점 수천 개까지 수 초).
 """
@@ -121,7 +121,7 @@ def points_from_dump(ents, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "삼각망 그리기", size="520x460")
+        super().__init__(CMD, "삼각망 작성", size="520x460")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

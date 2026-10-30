@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""HWLM 하천 횡단 홍수위 표시 일괄 — 엑셀 [측점, H.W.L, S.W.L(선택), 여유고(선택)]를 횡단면마다 표기.
+"""HWLM 횡단 계획홍수위 일괄 표기 — 엑셀 [측점, H.W.L, S.W.L(선택), 여유고(선택)]를 횡단면마다 표기.
 
 단면은 견본 한 단면으로 찾고(skills/common/xsec.py), 측점은 누가거리 소수 4자리로 맞춘다(구조물 인접 0.0005km 단면 보존).
 표기: 수위 기호(역삼각형 + 아래 짧은 선 셋), 수면선(지반선과 만나는 바깥 두 점 사이), 'H.W.L EL.12.345' 문자.
@@ -112,7 +112,7 @@ def build_lisp(sections, data, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "하천 횡단 홍수위 표시 일괄", size="560x660")
+        super().__init__(CMD, "횡단 계획홍수위 일괄 표기", size="560x660")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

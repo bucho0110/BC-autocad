@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""CEX 좌표 내보내기 — 고른 객체의 좌표를 엑셀 화면(선택 셀부터) 또는 텍스트 파일로.
+"""CEX 객체 좌표 출력 — 고른 객체의 좌표를 엑셀 화면(선택 셀부터) 또는 텍스트 파일로.
 
 build_rows()는 창 없이도 쓴다(MCP run_skill).
 """
@@ -129,7 +129,7 @@ def write_text(path, rows, sep):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "좌표 내보내기", size="600x800")
+        super().__init__(CMD, "객체 좌표 출력", size="600x800")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

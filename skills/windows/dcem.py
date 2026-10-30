@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DCEM 하천 횡단 레벨 표시 — 횡단면마다 좌·우에 EL 폴대(눈금·EL 숫자)를 그린다.
+"""DCEM 횡단 EL 눈금 표시 — 횡단면마다 좌·우에 EL 폴대(눈금·EL 숫자)를 그린다.
 
 단면은 견본 한 단면으로 모두 찾는다(skills/common/xsec.py). build_lisp()는 창 없이도 쓴다(MCP run_skill).
 """
@@ -74,7 +74,7 @@ def build_lisp(sections, cfg) -> str:
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "하천 횡단 레벨 표시", size="560x640")
+        super().__init__(CMD, "횡단 EL 눈금 표시", size="560x640")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

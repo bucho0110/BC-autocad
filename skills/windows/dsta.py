@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DSTA 선형에 측점 쓰기 — 간격마다 측점 선(눈금)·원·측점 문자. 교차선 위치, 엑셀 측점 목록도.
+"""DSTA 선형 측점 표기 — 간격마다 측점 선(눈금)·원·측점 문자. 교차선 위치, 엑셀 측점 목록도.
 
 거리 계산은 파이썬, 점·진행 각도는 LISP(vlax-curve)에서 받아 다시 LISP로 그린다.
 plan()·draw_lisp()는 창 없이도 쓴다(MCP run_skill).
@@ -141,7 +141,7 @@ def parse_samples(rows):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "선형에 측점 쓰기", size="600x800")
+        super().__init__(CMD, "선형 측점 표기", size="600x800")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

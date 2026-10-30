@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""RCE 순번 좌표 내보내기 — 점을 찍을 때마다 엑셀에 [순번, X, Y(, Z)]를 한 줄씩 쌓고 도면에 순번을 쓴다."""
+"""RCE 순번 붙여 좌표 출력 — 점을 찍을 때마다 엑셀에 [순번, X, Y(, Z)]를 한 줄씩 쌓고 도면에 순번을 쓴다."""
 
 import tkinter as tk
 
@@ -55,7 +55,7 @@ def pick_and_mark_lisp(label, cfg) -> str:
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "순번 좌표 내보내기", size="560x760")
+        super().__init__(CMD, "순번 붙여 좌표 출력", size="560x760")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)
