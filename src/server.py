@@ -81,6 +81,8 @@ INSTRUCTIONS = """AutoCAD 제어 MCP(한글판). AutoCAD의 '활성 도면'에 �
 - 영역 (0,0,0,0): get_entities의 숫자 영역 0,0,0,0은 '영역 없음(전체)', ssget_query의 글자 area "0,0,0,0"은 원점 한 점.
 - LISP로 그린 뒤 줌·캡처를 하면 그 줌도 UNDO에 남는다 — undo 결과의 view_changed를 보고 한 번 더 부를지 정한다.
 - 핸들은 도면마다 따로다. 도면을 여럿 열어 두었으면 activate_document로 대상 도면을 먼저 정한다.
+- 같은 도구가 반복해서 실패하거나 사용자가 안 된다고 하면, bug_report로 오류 보고서를 만들어 GitHub Issues에 올릴지
+  한 번 제안한다(강요하지 않는다. 사용자가 원하지 않으면 다시 묻지 않는다).
 """
 
 mcp = FastMCP(name="AutoCAD MCP (BC)", instructions=INSTRUCTIONS)
