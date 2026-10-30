@@ -84,6 +84,25 @@ def check_python(py):
     return True
 
 
+def check_acad_version(py):
+    """실행 중인 AutoCAD가 2021(R24.0) 미만이면 False. AutoCAD가 꺼져 있으면 확인하지 못하므로 True(설치는 계속).
+    2020 이하는 LISP이 UTF-8 .lsp와 (open … "utf8")을 지원하지 않아 명령과 MCP가 동작하지 않는다."""
+    code = "import win32com.client as w; print(w.GetActiveObject('AutoCAD.Application').Version)"
+    r = subprocess.run([py, "-c", code], capture_output=True, text=True)
+    ver = (r.stdout or "").strip()
+    if r.returncode != 0 or not ver:
+        return True
+    try:
+        major = int(ver.split(".")[0])
+    except ValueError:
+        return True
+    if major < 24:
+        say("[오류] AutoCAD 2021 이상이 필요합니다. 현재 실행 중인 AutoCAD는 2020 이하 버전입니다(버전 %s)." % ver)
+        say("       2020 이하는 LISP의 UTF-8 지원이 없어 토목 명령과 MCP가 동작하지 않으므로 설치를 중단합니다.")
+        return False
+    return True
+
+
 # ---------------------------------------------------------------- AutoCAD 명령 불러오기 파일
 def write_loader(py):
     pyw = os.path.join(os.path.dirname(py), "pythonw.exe")
@@ -348,6 +367,8 @@ def main():
     if a.venv or (a.all and not a.python):
         py = make_venv()
     if not check_python(py):
+        return 1
+    if not check_acad_version(py):
         return 1
     write_loader(py)
     if a.acad or a.all:
