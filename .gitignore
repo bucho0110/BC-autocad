@@ -4,3 +4,6 @@ desktop.ini
 .venv/
 venv/
 *.log
+*.dwl
+*.dwl2
+*.bak
