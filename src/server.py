@@ -694,7 +694,8 @@ async def regen(ctx: Context) -> str:
 
 @mcp.tool(structured_output=False)
 async def build_drawing_background(ctx: Context, code: str, output_path: str, base_drawing: str = "",
-                                   overwrite: bool = False, use_skills: bool = True, timeout_s: float = 300.0) -> str:
+                                   overwrite: bool = False, use_skills: bool = True, timeout_s: float = 300.0,
+                                   preview: bool = True) -> str:
     """백그라운드 작도: 화면 없는 AutoCAD(accoreconsole)로 LISP를 실행해 새 DWG 파일을 만든다.
     켜져 있는 AutoCAD 화면·도면은 건드리지 않는다(AutoCAD가 꺼져 있어도 되고, 사용자가 작업 중이어도 된다).
     사용자가 "백그라운드로", "화면 건드리지 말고 파일로 만들어 줘"라고 하거나, 큰 그림·새 도면을 만들 때 쓴다.
@@ -702,14 +703,16 @@ async def build_drawing_background(ctx: Context, code: str, output_path: str, ba
     (객체 스냅 꺼짐). use_skills면 토목 명령 함수(bc:*)를 먼저 불러 둔다.
     output_path: 저장할 .dwg 전체 경로(2018 형식). 이미 있으면 overwrite=true일 때만 덮어쓴다.
     base_drawing: 이 도면을 열어 시작(원본은 바꾸지 않고 결과는 output_path에만 저장).
-    반환 {output, entities, seconds, bytes, lines, console}. 확인하려면 open_drawing(output_path, read_only=true) 후 capture_view."""
+    preview(기본 true): 저장 뒤 모형 공간 전체를 PNG(흰 배경, 1600×1280)로 출력해 preview 경로로 준다 —
+    화면 없이 결과를 눈으로 확인할 때 그 PNG를 연다. 출력에 실패하면 preview=null과 preview_note(도면은 저장됨).
+    반환 {output, entities, seconds, bytes, lines, console, preview}. 화면 AutoCAD에서 보려면 open_drawing(output_path, read_only=true)."""
     root = os.path.dirname(os.path.abspath(__file__))
     if root not in sys.path:
         sys.path.insert(0, root)
     import background
     try:
         return _ok(await asyncio.to_thread(background.build, code, output_path, base_drawing, overwrite, use_skills,
-                                           timeout_s))
+                                           timeout_s, preview))
     except (ValueError, FileNotFoundError, FileExistsError, TimeoutError, RuntimeError) as e:
         raise ToolError(str(e))
 

@@ -1,10 +1,10 @@
-# BC-autocad — AutoCAD MCP 서버 (한글판) · BC.0.2.0
+# BC-autocad — AutoCAD MCP 서버 (한글판) · BC.0.3.0
 
 **AutoCAD**를 AI 에이전트(Claude Code·안티그래비티·Codex)에서 자연어로 제어할 수 있도록 지원하는 MCP 서버입니다.
 AI 연동 없이 AutoCAD에서 직접 실행할 수 있는 **토목 전용 명령 40개**(EL·좌표·측점·사면·하천 횡단·다중 플롯)도 함께 제공합니다.
 
 - 개발자: **BUCHO** · MCP 도구 68개 · 토목 명령 40개 · 모든 설명과 메시지는 한국어로 제공합니다.
-- 버전 **BC.0.2.0**: 현재 사용자 테스트 단계의 버전이며, 검증을 마친 후 정식 버전(BC.1.0.0)으로 갱신할 예정입니다. 버전 정보는 AutoCAD `BCHELP` 대화상자 제목 표시줄에서도 확인할 수 있습니다.
+- 버전 **BC.0.3.0**: 현재 사용자 테스트 단계의 버전이며, 검증을 마친 후 정식 버전(BC.1.0.0)으로 갱신할 예정입니다. 버전 정보는 AutoCAD `BCHELP` 대화상자 제목 표시줄에서도 확인할 수 있습니다.
 - 문의·요청: 저장소 https://github.com/bucho0110/BC-autocad 의 **Issues**에 등록해 주십시오.
 - 라이선스: `LICENSE`(BUCHO 무료 공개 라이선스) — 업무 용도를 포함해 누구나 무료로 사용, 수정 및 배포할 수 있습니다. 유료 판매 및 유료 서비스 제공은 금지되며, 변형하거나 배포할 때는 원작자 출처(BUCHO)와 라이선스 전문을 반드시 포함해야 합니다.
 
@@ -122,21 +122,35 @@ python install\install.py --all
 
 ## 3. AI 에이전트 연동
 
-본 서버는 **사용자 PC 내부에서만 동작하는 로컬 MCP 서버**입니다. AI 프로그램이 해당 PC에서 서버를 직접 실행해야 하므로,
-**PC에 설치된 AI 도구(터미널 CLI, VS Code 확장, 일부 데스크톱 앱)에서만** 사용할 수 있습니다.
-웹 브라우저 기반 AI(claude.ai, chatgpt.com, Gemini 웹)는 인터넷 주소로 연결하는 원격 MCP 서버만 연동할 수 있으므로 지원 대상이 아닙니다.
+본 서버는 **사용자 PC 안에서만 동작하는 로컬 MCP 서버**입니다. AI 프로그램이 이 PC에서 서버를 직접 실행해야 하므로,
+**PC에 설치해서 쓰는 코딩 에이전트**(Claude Code·안티그래비티·Codex)에서 사용할 수 있고, **대화형 채팅 앱**(claude.ai·Gemini·ChatGPT)에서는 사용할 수 없습니다.
+채팅 앱은 웹이든 데스크톱 앱이든 인터넷 주소로 연결하는 원격 MCP만 지원하기 때문입니다.
 터널링으로 로컬 서버를 외부에 노출하는 방식은 AutoCAD 제어 권한이 외부에 노출되는 보안 위험이 있어 권장하지 않습니다.
 
-`install.cmd`는 이 PC에 **설치된 AI 에이전트를 자동으로 감지하여 모두 등록**합니다. 에이전트를 나중에 설치했다면 `install.cmd`를 다시 실행하거나,
+**사용할 수 있는 프로그램과 없는 프로그램**
+
+| 회사 | ✅ 사용 가능 (설치 스크립트가 자동 등록) | ❌ 사용 불가 |
+|---|---|---|
+| Anthropic | **Claude Code** — 터미널(CLI), VS Code 확장 | claude.ai(웹), Claude 모바일 앱 |
+| Google | **안티그래비티** — 터미널(CLI `agy`), 데스크톱 앱(Antigravity IDE) | Gemini(웹·모바일 앱) |
+| OpenAI | **Codex** — 터미널(CLI), VS Code 확장, Codex 데스크톱 앱 | ChatGPT(웹·데스크톱·모바일 채팅 앱) |
+
+- **ChatGPT 데스크톱 앱과 Codex 데스크톱 앱은 서로 다른 프로그램입니다.** ChatGPT 데스크톱 앱은 채팅 앱이라 사용할 수 없고, Codex 데스크톱 앱은 코딩 에이전트라 사용할 수 있습니다(둘 다 같은 ChatGPT 계정으로 로그인).
+- **Claude 데스크톱 앱**(채팅 앱)은 예외적으로 로컬 MCP를 지원하지만, 설치 스크립트가 자동으로 등록하지 않습니다.
+- Codex는 설정 파일 형식만 공식 형식에 맞췄고, 실제 연결은 아직 시험하지 못했습니다(3-3).
+
+**설치 스크립트가 등록하는 위치**
+
+`install.cmd`는 이 PC에 **설치된 에이전트를 자동으로 감지하여 모두 등록**합니다. 에이전트를 나중에 설치했다면 `install.cmd`를 다시 실행하거나,
 `python install\install.py --claude`와 같이 해당 옵션만 지정합니다(별도 가상환경을 사용하는 경우 `--python <경로>`를 함께 지정).
 
-| AI 에이전트 | 지원 환경 | 등록 위치 | 지원하지 않는 환경 |
-|---|---|---|---|
-| **Claude Code** (Anthropic) | 터미널(CLI), VS Code 확장 | `claude mcp add bc-autocad -s user …` — 사용자 전역 범위로 등록되어 작업 폴더와 관계없이 인식되며, VS Code 확장에서도 같은 등록을 사용합니다. | claude.ai 웹 |
-| **안티그래비티** (Google) | 터미널(CLI `agy`), 데스크톱 앱 Antigravity IDE | CLI: `~/.gemini/config/mcp_config.json`<br>데스크톱 앱: `~/.gemini/antigravity-ide/mcp_config.json`(이전 앱은 `~/.gemini/antigravity/mcp_config.json`)<br>프로그램별로 설정 파일이 다르므로 존재하는 파일 모두에 등록합니다. | Gemini 웹 |
-| **Codex** (OpenAI, ChatGPT 계정) | 터미널(CLI), VS Code 확장 | `~/.codex/config.toml`의 `[mcp_servers.bc-autocad]` — CLI와 VS Code 확장이 같은 파일을 사용합니다. 다른 설정은 변경하지 않습니다. | ChatGPT 앱(웹·데스크톱) |
+| 에이전트 | 등록 위치 |
+|---|---|
+| Claude Code | `claude mcp add bc-autocad -s user …` — 사용자 전역 범위로 등록되어 작업 폴더와 관계없이 인식되며, VS Code 확장도 같은 등록을 사용합니다. |
+| 안티그래비티 | CLI: `~/.gemini/config/mcp_config.json`<br>데스크톱 앱: `~/.gemini/antigravity-ide/mcp_config.json`(이전 앱은 `~/.gemini/antigravity/mcp_config.json`)<br>프로그램별로 설정 파일이 다르므로 존재하는 파일 모두에 등록합니다. |
+| Codex | `~/.codex/config.toml`의 `[mcp_servers.bc-autocad]` — CLI·VS Code 확장·데스크톱 앱이 같은 파일을 사용합니다. 다른 설정은 변경하지 않습니다. |
 
-`~`는 사용자 홈 폴더(`C:\Users\<사용자 이름>`)를 뜻합니다. Claude **데스크톱 앱**도 로컬 MCP를 지원하지만, 현재 설치 스크립트는 자동으로 등록하지 않습니다.
+`~`는 사용자 홈 폴더(`C:\Users\<사용자 이름>`)를 뜻합니다.
 
 ### 3-1. Claude Code
 1. Claude Code를 설치합니다(Anthropic 안내 참조). 터미널에서 `claude`가 실행되면 됩니다.
@@ -155,7 +169,7 @@ python install\install.py --all
 - 등록 해제: CLI는 `agy mcp remove bc-autocad`를 실행합니다. 데스크톱 앱은 위 표의 `mcp_config.json`을 텍스트 편집기로 열어 `"bc-autocad": { … }` 설정 블록을 삭제합니다.
 
 ### 3-3. Codex (ChatGPT 계정)
-1. Codex(CLI 또는 VS Code 확장)를 설치하고 ChatGPT 계정으로 로그인합니다(OpenAI 안내 참조).
+1. Codex(CLI, VS Code 확장 또는 Codex 데스크톱 앱)를 설치하고 ChatGPT 계정으로 로그인합니다(OpenAI 안내 참조). ChatGPT 채팅 앱이 아니라 Codex를 설치해야 합니다.
 2. `install.cmd`를 실행합니다. `codex` 실행 파일이나 `~/.codex` 폴더가 있으면 등록합니다(`CODEX_HOME`을 사용하는 경우 해당 폴더).
 3. Codex를 다시 실행하고 `/mcp`에서 `bc-autocad`를 확인합니다.
 - 처리 시간이 긴 도구(다중 플롯)를 위해 `tool_timeout_sec = 1800`(Codex 기본값 60초)을, 최초 실행 여유를 위해 `startup_timeout_sec = 30`을 설정합니다.
@@ -242,7 +256,8 @@ AI에 **"백그라운드로 그려 줘"**, **"화면 건드리지 말고 파일�
 - 사용 중인 AutoCAD 화면과 도면은 건드리지 않으므로, 그동안 AutoCAD에서 계속 작업할 수 있습니다. AutoCAD가 꺼져 있어도 됩니다(설치만 되어 있으면 됨).
 - 결과는 지정한 경로에 DWG(2018 형식)로 저장됩니다. 기존 도면을 바탕으로 시작해도 원본은 바뀌지 않고 새 파일로 저장됩니다. 같은 이름의 파일이 있으면 덮어쓰지 않습니다(덮어쓰기를 요청한 경우만).
 - 토목 명령 함수도 함께 사용할 수 있습니다.
-- 다 만든 뒤 확인이 필요하면 AI가 그 파일을 AutoCAD 새 탭에 읽기 전용으로 열어 캡처합니다.
+- **미리보기 그림**: 저장한 뒤 도면 전체를 PNG 그림(흰 배경, 1600×1280)으로 출력해, AI가 화면 없이도 결과를 눈으로 확인하고 다듬습니다. 그림은 임시 폴더에 저장됩니다.
+- 화면에서 직접 보고 싶으면 "열어 줘"라고 요청합니다. AI가 그 파일을 AutoCAD 새 탭에 읽기 전용으로 엽니다.
 
 ## 5. 문제 해결
 
@@ -293,7 +308,7 @@ AI에 **"백그라운드로 그려 줘"**, **"화면 건드리지 말고 파일�
 | 실행 취소 | `undo(count)`, `redo` |
 | LISP·명령 | `run_lisp(code, timeout_s)`, `send_command(LISP 식)`, `cancel_command` |
 | 화면·캡처 | `capture_view(output_path)`, `zoom_extents`, `zoom_window`, `regen` |
-| 백그라운드 작도 | `build_drawing_background(code, output_path, base_drawing, overwrite, use_skills)` — 화면 없는 AutoCAD(accoreconsole)로 새 DWG를 만듭니다. 사용 중인 AutoCAD 화면은 건드리지 않습니다(4-5) |
+| 백그라운드 작도 | `build_drawing_background(code, output_path, base_drawing, overwrite, use_skills, preview)` — 화면 없는 AutoCAD(accoreconsole)로 새 DWG를 만들고 PNG 미리보기를 출력합니다. 사용 중인 AutoCAD 화면은 건드리지 않습니다(4-5) |
 | 토목 명령 | `skill_list`, `skill_open`, `skill_run`(4-4) |
 
 - 공통 작도 인자: `layer`(없으면 생성하며 현재 레이어는 변경하지 않음), `color`(ACI 0~256), `true_color`("R,G,B"), `linetype`(없으면 표준 .lin에서 로드), `lineweight`(1/100mm).
@@ -327,7 +342,7 @@ AI에 **"백그라운드로 그려 줘"**, **"화면 건드리지 말고 파일�
 | `tests/test_alias_live.py` | BC 이름·단축 이름 활성화와 해제·`BCOFF` 확인 |
 | `tests/test_geom_live.py` | 정밀 조회(`get_geometry`·`get_xrefs`·`get_layouts`)와 문자 겹침 검사 |
 | `tests/test_rce_live.py` | `RCE` 대화상자 실행 흐름(점 선택만 지정 좌표로 대체하고, 화면에 표시되지 않는 새 Excel에 출력) |
-| `tests/test_background.py` | 백그라운드 작도(새 도면·기존 도면 바탕·덮어쓰기 방지·LISP 오류 시 미저장). 화면 AutoCAD 없이 수행 |
+| `tests/test_background.py` | 백그라운드 작도(새 도면·기존 도면 바탕·PNG 미리보기·덮어쓰기 방지·LISP 오류 시 미저장). 화면 AutoCAD 없이 수행 |
 | `tests/test_skill_defaults.py` | 설정 기본값이 Python(registry)과 LISP에서 일치하는지 대조 |
 
 테스트는 `<python> -X utf8 tests\<파일>`로 실행하며, 마지막에 `FAIL: []`이 출력되면 통과입니다. `_live` 테스트는 AutoCAD가 실행 중이고 활성 도면이 새 도면(`Drawing*`)일 때만 수행됩니다.
@@ -359,6 +374,6 @@ AutoCAD 2023 환경에서 실측하고 검증한 사항입니다.
 - (2026-10-30) `STT` 방식 `구간`: 하천 평면도 지구명 견본과 같은 두 줄 문자(인출선·Dot 없음)를 구간 양 끝 안쪽에 선형 방향으로 작성합니다. 구간이 문자보다 짧으면 가운데 한 곳에 작성합니다. 연장은 두 측점의 차이(천 단위 쉼표, 소수 `구간소수`), 구분자는 `구간구분`(기본값 ` ~ `)입니다.
 - (2026-10-30) 명령 이름: 기본값은 `BC` 접두어 이름만 사용합니다(`BCFE`). 단축 이름(`FE`)은 `BCHELP` 대화상자에서 활성화한 명령만 사용하며, `BCOFF`로 모두 해제합니다(4-1). AutoCAD는 LISP 명령을 같은 이름의 단축키보다 먼저 실행하고(실측), BC 이름만 두고 자동 완성에 의존하면 앞부분이 일치하는 다른 명령이 우선할 수 있어(`CIRC` → CIRCLE, 실측) 이 방식으로 결정했습니다. 버전은 `BCHELP` 대화상자 제목에만 표시합니다.
 - (2026-10-30) Excel에 숫자를 출력할 때 지정한 소수 자릿수가 그대로 표시되도록 셀 표시 형식을 지정합니다(Excel은 `100.0000`을 숫자로 변환하면서 끝의 0을 생략함). 좌표 소수는 사사오입합니다(`7.125`→`7.13`). `CEX`·`RCE`의 좌표 소수 기본값은 4자리이며, `RCE`는 행마다 열 너비를 맞춥니다.
-- (2026-10-30) 백그라운드 작도(`build_drawing_background`): 화면 없는 AutoCAD(accoreconsole.exe)는 스크립트(.scr)가 UTF-8 한 줄 LISP 파일을 읽어 eval하는 방식으로 한글이 정상 처리되고, `(command "_.SAVEAS" "2018" 경로)`로 저장되며, 스크립트가 끝나면 스스로 종료합니다(새 도면 작도·저장 약 2.4초). 로그 파일이 작업 폴더에 생길 수 있어 임시 폴더에서 실행합니다.
+- (2026-10-30) 백그라운드 작도(`build_drawing_background`): 화면 없는 AutoCAD(accoreconsole.exe)는 스크립트(.scr)가 UTF-8 한 줄 LISP 파일을 읽어 eval하는 방식으로 한글이 정상 처리되고, `(command "_.SAVEAS" "2018" 경로)`로 저장되며, 스크립트가 끝나면 스스로 종료합니다(새 도면 작도·저장 약 2.4초). 로그 파일이 작업 폴더에 생길 수 있어 임시 폴더에서 실행합니다. 미리보기는 `-PLOT` + `PublishToWeb PNG.pc3`로 출력합니다(한국어판은 용지 이름이 한글이라 기본 용지를 빈 입력으로 선택).
 - (2026-10-30) 안티그래비티는 CLI와 데스크톱 앱의 MCP 설정 파일이 서로 달라, 설치 스크립트가 존재하는 파일 모두에 등록합니다(3장).
 - (2026-10-30) 플러그인 자동 로드 대상을 AutoCAD 2021(R24.0) 이상으로 정했습니다. UTF-8 `.lsp`(LISPSYS=1)와 `(open … "utf8")`이 2021부터 지원되므로 2020 이하는 대상에서 제외합니다(2021·2022는 미검증).

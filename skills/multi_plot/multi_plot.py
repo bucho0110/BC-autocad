@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """
-CAD Multi Plotter (다중 플롯 유틸리티) - BC.0.2.0 (MCP 패키지 버전과 같게)
+CAD Multi Plotter (다중 플롯 유틸리티) - BC.0.3.0 (MCP 패키지 버전과 같게)
 =========================================================
 오토캐드(AutoCAD) 및 호환 CAD에서 모형(Model) 공간의 다중 도곽(블록·사각 폴리라인·수동 영역)을
 자동 인식·정렬하여 일괄 PDF 변환 또는 프린터로 다중 출력하는 독립 GUI 도구입니다.
 """
 
 import ctypes
-ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("BC.CAD_Multi_Plotter.0.2.0")
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("BC.CAD_Multi_Plotter.0.3.0")
 
 import os
 import sys

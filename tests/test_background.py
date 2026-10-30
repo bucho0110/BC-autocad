@@ -45,6 +45,17 @@ try:
     check("새 도면 작도·저장", os.path.isfile(a) and r["entities"] == 3, r)
     check("결과 줄(한글·토목 함수 불러옴)", r["lines"] == ["토목\tlib"], r["lines"])
     check("시간", r["seconds"] < 60, r["seconds"])
+    pv = r.get("preview")
+    check("PNG 미리보기 출력", bool(pv) and os.path.isfile(pv) and os.path.getsize(pv) > 1000, r)
+    if pv and os.path.isfile(pv):
+        with open(pv, "rb") as f:
+            check("PNG 형식", f.read(8) == bytes([137, 80, 78, 71, 13, 10, 26, 10]))
+        os.remove(pv)
+    e = B.build("(princ)", os.path.join(tmp, "빈도면.dwg"), use_skills=False)
+    check("빈 도면은 미리보기 없이 안내", e["preview"] is None and "빈 도면" in e.get("preview_note", ""), e)
+    n = B.build("(entmake (list (cons 0 \"POINT\") (list 10 0.0 0.0 0.0)))", os.path.join(tmp, "미리보기끔.dwg"),
+                use_skills=False, preview=False)
+    check("preview=false면 출력 안 함", "preview" not in n, n)
     # 저장한 도면을 다시 열어 한글 문자와 (command)로 그린 원을 확인, 결과는 다른 파일로
     mtime = os.path.getmtime(a)
     b = os.path.join(tmp, "배경_2.dwg")

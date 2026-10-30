@@ -59,11 +59,25 @@ def _skills_lib():
     return lisplib.build()[1]
 
 
+PREVIEW_DIR = os.path.join(tempfile.gettempdir(), "bc_bg_preview")
+
+
+def _plot_lisp(png: str) -> str:
+    """모형 공간 전체를 PNG로 출력(PublishToWeb PNG.pc3, 기본 용지 1600×1280 픽셀, 색은 acad.ctb 그대로).
+    한국어판은 용지 이름이 한글이라 용지는 빈 입력(기본값)으로 받는다(실측). 실패해도 작도·저장은 그대로 둔다."""
+    p = _slash(png)
+    return ('(if (and (> _bccount 0) (setq _bcok (vl-catch-all-apply (function (lambda () (command "_.ZOOM" "_E")'
+            ' (command "_.-PLOT" "_Y" "Model" "PublishToWeb PNG.pc3" "" "_L" "_N" "_E" "_F" "_C" "_Y" "acad.ctb" "_Y" "_A"'
+            ' "%s" "_N" "_Y")))))) (princ))'
+            ' (write-line (strcat "BC_BG_PNG" (chr 9) (if (findfile "%s") "1" "0")) _fp)') % (p, p)
+
+
 def build(code: str, output_path: str, base_drawing: str = "", overwrite: bool = False, use_skills: bool = True,
-          timeout_s: float = 300.0) -> dict:
+          timeout_s: float = 300.0, preview: bool = True) -> dict:
     """code(LISP)를 화면 없는 AutoCAD에서 실행하고 output_path(.dwg)로 저장한다.
     base_drawing을 주면 그 도면을 열어 시작한다(원본은 그대로, 결과는 output_path에만 저장).
-    결과는 code가 (write-line "..." _fp)로 쓴 줄을 lines로 돌려준다."""
+    결과는 code가 (write-line "..." _fp)로 쓴 줄을 lines로 돌려준다.
+    preview면 저장한 뒤 모형 공간 전체를 PNG로 출력해 preview(임시 폴더 경로)로 돌려준다 — 화면 없이 결과를 눈으로 확인할 때."""
     V.check_parens(code)
     out = os.path.abspath(output_path)
     if not out.lower().endswith(".dwg"):
@@ -88,16 +102,23 @@ def build(code: str, output_path: str, base_drawing: str = "", overwrite: bool =
         res = os.path.join(work, "result.txt")
         lib = ('(progn (setq _bcl (open "%s" "r" "utf8") _bcs (read-line _bcl)) (close _bcl) (eval (read _bcs)) '
                '(setq _bcl nil _bcs nil))' % _slash(_skills_lib())) if use_skills else ""
+        png = ""
+        if preview:
+            os.makedirs(PREVIEW_DIR, exist_ok=True)
+            png = os.path.join(PREVIEW_DIR, "%s_%s.png" % (os.path.splitext(os.path.basename(out))[0],
+                                                           time.strftime("%Y%m%d_%H%M%S")))
         body = (
             '(progn (setq _fp (open "%s" "w" "utf8") _d (chr 9))'
             ' (defun *error* (msg) (write-line (strcat "LISPERROR" (chr 9) (if (= (type msg) (quote STR)) msg "")) _fp)'
             '  (write-line "%s" _fp) (close _fp) (princ))'
             ' (setvar "OSMODE" 0) (setvar "CMDECHO" 0) %s\n%s\n'
-            ' (write-line (strcat "BC_BG_COUNT" (chr 9) (itoa (if (setq _bcss (ssget "_X")) (sslength _bcss) 0))) _fp)'
+            ' (setq _bccount (if (setq _bcss (ssget "_X")) (sslength _bcss) 0))'
+            ' (write-line (strcat "BC_BG_COUNT" (chr 9) (itoa _bccount)) _fp)'
             ' (command "_.SAVEAS" "2018" "%s")'
             ' (write-line (strcat "BC_BG_SAVED" (chr 9) (if (findfile "%s") "1" "0")) _fp)'
+            ' %s'
             ' (write-line "%s" _fp) (close _fp) (princ))'
-        ) % (_slash(res), DONE, lib, code, _slash(out), _slash(out), DONE)
+        ) % (_slash(res), DONE, lib, code, _slash(out), _slash(out), _plot_lisp(png) if png else "", DONE)
         src = os.path.join(work, "code.lsp.txt")
         with open(src, "w", encoding="utf-8") as f:
             f.write(V.one_line(body))
@@ -133,7 +154,14 @@ def build(code: str, output_path: str, base_drawing: str = "", overwrite: bool =
         if info.get("BC_BG_SAVED") != "1" or not os.path.isfile(out):
             raise RuntimeError("도면을 저장하지 못했습니다: %s" % out)
         user = [ln for ln in lines[:-1] if not ln.startswith("BC_BG_")]
-        return {"output": out, "entities": int(info.get("BC_BG_COUNT", "0")), "seconds": sec,
-                "bytes": os.path.getsize(out), "lines": user, "console": os.path.basename(os.path.dirname(acc))}
+        result = {"output": out, "entities": int(info.get("BC_BG_COUNT", "0")), "seconds": sec,
+                  "bytes": os.path.getsize(out), "lines": user, "console": os.path.basename(os.path.dirname(acc))}
+        if preview:
+            ok = info.get("BC_BG_PNG") == "1" and os.path.isfile(png)
+            result["preview"] = png if ok else None
+            if not ok:
+                result["preview_note"] = ("빈 도면이라 출력하지 않았습니다." if result["entities"] == 0 else
+                                          "PNG 출력에 실패했습니다(도면은 저장됨). open_drawing 후 capture_view로 확인하세요.")
+        return result
     finally:
         shutil.rmtree(work, ignore_errors=True)
