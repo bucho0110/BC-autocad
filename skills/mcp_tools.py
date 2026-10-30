@@ -62,6 +62,7 @@ RUN_SPECS = {
     "CFM": "handle(중심선), settings.방식 '그려진 횡단선 선택'(+ section_handles) | '측점 간격마다' | '엑셀 측점 목록'(+ stations [측점…]), terrain_handles(선택), base_point [x,y](선택: 첫 횡단 중심에 작도) → sections [{station, dist, ground [[거리(왼쪽 −), EL]], center_el}]",
     "ART": "handles(문자), point [x,y](수평·수직 정렬 기준점, 간격 조정만이면 생략), settings 방식·정렬점·간격함께·간격방식·간격·이격 → 정렬한 문자 수",
     "CTS": "handles(문자), settings.방식 '문자 외곽선'(트루타입 TEXT만, 정밀도·두께%)|'문자 복사'(X·Y 문자 높이 배수), 그림자색·원본색·레이어 → made, skipped [{handle, reason}] (그림자는 원본 뒤로)",
+    "RET": "handles(철근 상세의 원·번호 블록·문자·밑줄 선 전부), insert_point [x,y](선택: 표 왼쪽 위 — 없으면 계산만), mark_bad(기본 true: 인식 못 한 원에 '철근-인식안됨' 광선) → details 수, tables [{grade, rows [번호, 직경, 길이(m), 본수, 총길이, 단위중량, 총중량, 비고]}], unrecognized, duplicates. settings 할증·비고·강도별·길이단위(자동: 소수점 있으면 m)·정렬",
     "INN": "settings.내용('도면 (?/6)'처럼 ? 자리), 시작값·증분·자리수·소수·천단위·16진수 + ① 복사: source_handle, base_point, points [[x,y]…] ② 고치기: handles(고른 순서대로) → values",
     "QCAR": "boundary_handle(용지 경계 닫힌 폴리선), alignment_handle(선택: 번호 순서용 선형), handles(선택: 지적·지번·행정구역 객체, 없으면 도면 전체 LWPOLYLINE·문자 — settings 지적선레이어·지번문자레이어로 가름), draw(기본 true: 면적 산출선·번호) → rows [행정구역, 번호, 지번, 지목, 면적, 편입면적, 전체편입, 비고]·summary(합계·경계·차이=합계−경계)",
     "CMOB": "handles(선택, 없으면 도면 전체 대상 종류), settings.여유도(2~10) → 경계 고리 수·정점 수",
@@ -614,6 +615,23 @@ def run(ctl, cmd: str, a: dict, budget: float = 120.0) -> dict:
             src = ctl.lisp(lib + '(setq _ss (ssadd)) (foreach _h (list %s) (if (handent _h) (ssadd (handent _h) _ss)))'
                            % " ".join(lq(h) for h in a["handles"]) + cts.INFO_LISP, doc=doc, timeout_s=t1)
         return dict(cts.run_core(None, write, src, cfg), drawing=doc.Name)
+    if cmd == "RET":
+        from skills.windows import ret
+        cfg = merged_cfg("RET", ret.DEFAULTS, a.get("settings"))
+        _need(a, "handles")
+        rows = ctl.lisp(lib + '(setq _ss (ssadd)) (foreach _h (list %s) (if (handent _h) (ssadd (handent _h) _ss)))'
+                        % " ".join(lq(h) for h in a["handles"]) + ret.DUMP_LISP, doc=doc, timeout_s=t1)
+        details, bad = ret.recognize(*ret.parse_dump(rows), cfg)
+        tables = ret.compute(details, cfg) if details else []
+        code = ret.bad_lisp(bad) if a.get("mark_bad", True) else ""
+        if a.get("insert_point") and tables:
+            code += ret.tables_lisp(tables, a["insert_point"], cfg)
+        if code:
+            _draw(ctl, doc, lib, code, t1)
+        return {"drawing": doc.Name, "details": len(details), "duplicates": ret.duplicates(details),
+                "unrecognized": bad, "tables": [{"grade": t["grade"], "rows": t["rows"], "weight": t["weight"],
+                                                 "weight_add": t["weight_add"]} for t in tables],
+                "drawn": bool(a.get("insert_point") and tables)}
     if cmd == "INN":
         from skills.windows import inn
         cfg = merged_cfg("INN", inn.DEFAULTS, a.get("settings"))
