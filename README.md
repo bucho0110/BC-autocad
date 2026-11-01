@@ -3,12 +3,12 @@
 **AutoCAD**를 AI 에이전트(Claude Code·안티그래비티·Codex)에서 자연어로 제어할 수 있도록 지원하는 MCP 서버입니다.
 AI 연동 없이 AutoCAD에서 직접 실행할 수 있는 **명령 91개**(토목 EL·지형·종단·횡단·좌표·측점·사면·하천 횡단, 수량·면적·구적, CAD 표↔Excel, 도면 정리, 문자 편집, 철근 재료표·철근 검사, 레이어, 계산기, 여러 도면 불러오기, 다중 플롯)도 함께 제공합니다.
 
-- 개발자: **BUCHO** · MCP 도구 70개 · AutoCAD 명령 91개 · 모든 설명과 메시지는 한국어로 제공합니다.
+- 개발자: **BUCHO** · MCP 도구 71개 · AutoCAD 명령 91개 · 모든 설명과 메시지는 한국어로 제공합니다.
 - 버전 **BC.0.5.0**: 현재 사용자 테스트 단계의 버전이며, 검증을 마친 후 정식 버전(BC.1.0.0)으로 갱신할 예정입니다. 버전 정보는 AutoCAD `BCHELP` 대화상자 제목 표시줄에서도 확인할 수 있습니다.
 - 문의·요청: 저장소 https://github.com/bucho0110/BC-autocad 의 **Issues**에 등록해 주십시오.
 - 라이선스: `LICENSE`(BUCHO 무료 공개 라이선스) — 업무 용도를 포함해 누구나 무료로 사용, 수정 및 배포할 수 있습니다. 유료 판매 및 유료 서비스 제공은 금지되며, 변형하거나 배포할 때는 원작자 출처(BUCHO)와 라이선스 전문을 반드시 포함해야 합니다.
 
-**목차** — [사용 예시](#사용-예시) · [1. 설치 전 확인](#1-설치-전-확인-사용자ai-공통) · [2. 설치](#2-설치) · [3. AI 에이전트 연동](#3-ai-에이전트-연동) · [4. AutoCAD 명령 91개](#4-autocad-명령-91개) · [5. 문제 해결](#5-문제-해결) · [6. 주요 동작 규칙](#6-주요-동작-규칙-ai고급-사용자) · [7. MCP 도구 70개](#7-mcp-도구-70개) · [8. 개발자 참고](#8-개발자-참고)
+**목차** — [사용 예시](#사용-예시) · [1. 설치 전 확인](#1-설치-전-확인-사용자ai-공통) · [2. 설치](#2-설치) · [3. AI 에이전트 연동](#3-ai-에이전트-연동) · [4. AutoCAD 명령 91개](#4-autocad-명령-91개) · [5. 문제 해결](#5-문제-해결) · [6. 주요 동작 규칙](#6-주요-동작-규칙-ai고급-사용자) · [7. MCP 도구 71개](#7-mcp-도구-71개) · [8. 개발자 참고](#8-개발자-참고)
 
 ## 사용 예시
 
@@ -341,11 +341,11 @@ AI 에이전트를 사용 중이라면 다음과 같이 요청해 만든 보고�
 7. **영역 조회**(`get_entities`의 bbox, `ssget_query`의 area)는 객체의 외곽 범위가 영역과 겹치면 포함합니다. 화면 밖·꺼진 레이어의 객체도 포함하며, 기울어진 객체는 넓게 선택될 수 있습니다.
 8. **화면 캡처**(`capture_view`)는 AutoCAD 창을 앞으로 가져오지 않고 도면 영역만 PNG로 저장합니다. AutoCAD가 최소화되어 있으면 실패합니다. 캡처 전에 Regen하지 않습니다(Regen이 UNDO를 무효화함).
 
-## 7. MCP 도구 70개
+## 7. MCP 도구 71개
 
 | 분류 | 도구 |
 |---|---|
-| 연결·진단 | `ping`, `get_cad_info`(별칭 `get_icad_info`), `health_check` |
+| 연결·진단·안내 | `ping`, `get_cad_info`(별칭 `get_icad_info`), `health_check`, `guide`(작도·명령·조회 요령, AI가 작업 전에 먼저 호출) |
 | 도면 | `list_documents`, `activate_document`, `open_drawing(path, read_only)`, `save_drawing(path="")`, `close_drawing(save=True)`, `new_drawing`, `get_drawing_info` |
 | 레이어·문자 스타일 | `get_layers`, `set_layer`, `set_active_layer`, `get_text_styles`, `set_text_style` |
 | 조회 | `get_entities`, `get_entity`, `count_entities`, `ssget_query`, `entget_by_handles`, `find_text` |

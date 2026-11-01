@@ -55,6 +55,11 @@ logger = logging.getLogger("cad_mcp")
 
 INSTRUCTIONS = """AutoCAD 제어 MCP(한글판). AutoCAD의 '활성 도면'에 작업한다(AutoCAD를 자동 실행하지 않음).
 
+작업 전 필수:
+1. 그리기나 토목 작업을 시작하기 전에 guide를 한 번 부른다(작도·명령·조회 요령).
+2. 있는 것부터 쓴다 — 토목 명령 91개(skill_list)와 create_* 작도 도구. run_lisp로 직접 그리는 것은 마지막 수단.
+3. 한글 문자를 쓰기 전에 한글 글꼴 스타일을 준비한다(아래 '한글').
+
 - 좌표는 도면 단위, 각도는 도(degree), 색은 ACI(0~256) 또는 true_color "R,G,B".
 - 작도·편집 도구는 한 호출을 UNDO 한 묶음으로 남긴다. 반환의 drawing은 실제로 작업한 도면 이름이다.
 - 사용자가 AutoCAD에서 명령 중이면 MCP는 건드리지 않고 거절한다. 그때는 사용자에게 알리고 기다린다.
@@ -132,6 +137,47 @@ def _style(layer="", color=-1, true_color="", linetype="", lineweight=-1) -> dic
 async def ping(ctx: Context) -> str:
     """AutoCAD 연결 확인. 'pong'과 활성 도면 이름."""
     return await _run(ctl.ping, timeout=15)
+
+
+GUIDE = {
+    "작도": """[작도 순서 — 단면도·평면도·상세도 등 새로 그릴 때]
+1. 있는 명령 확인: skill_list로 비슷한 명령(옹벽·사면·종단·횡단·EL·측점·수량표 …)이 있는지 먼저 본다. 있으면 skill_run.
+2. 한글 글꼴: get_text_styles에서 korean_capable=true 스타일이 없으면
+   set_text_style("KR", typeface="맑은 고딕") (또는 font_file="romans.shx", bigfont_file="whgtxt.shx").
+   이후 문자·지시선의 style에 "KR". 글꼴을 run_lisp로 바꾸지 않는다.
+3. 레이어: set_layer로 요소별 레이어(외곽·철근·치수·해치·문자)를 만들고 각 도구의 layer에 준다.
+4. 요소별 전용 도구:
+   - 외곽선: create_polyline(closed=True), 선: create_line / 여러 선 한 번에: draw_lines_atomic
+   - 치수: create_dimension(kind="horizontal"·"vertical", scale=축척) — 도면 단위 m·1/50 출력이면 scale 0.05
+   - 철근·재료 표기: create_leader(점들, 문자, text_height, style="KR")
+   - 해치: 그려 둔 닫힌 외곽에 create_hatch(boundary_handles=[핸들]) — 무늬 축척은 작게 시작해 확인
+   - 문자: create_text / create_mtext(style="KR")
+   - 반복 배치: copy_entities·array_linear·array_polar, 블록: create_block·insert_block
+5. 확인: zoom_extents 후 capture_view로 화면을 보고 글자 크기·겹침(find_text_overlaps)을 고친다.
+run_lisp는 위 도구로 안 되는 계산·조회·일괄 편집에만 쓴다.""",
+    "명령": """[토목 명령(스킬) 쓰기]
+1. skill_list()로 91개 목록(command·title·desc), 쓸 명령은 skill_list(command="DRP")로 settings 키를 확인.
+2. 값이 정해진 일은 skill_run(command, settings, rows), 사람이 고를 일은 skill_open(창).
+3. 좌표 명령(XY·CEX·CIM·ZBC·WCD)은 기본이 토목 좌표(X=북, Y=동) — CAD 순서로 쓰려면 settings {"좌표": "수학"}.
+4. 경사는 '1:1.5'·'2%' 같은 글자로 준다. 문자 높이 기준은 명령마다 다르다(settings의 label 참고).""",
+    "조회": """[도면 읽기]
+- 개수·종류: count_entities, 가볍게 찾기: ssget_query(fields="handles"), 문자 찾기: find_text.
+- 정확한 좌표: get_geometry(여러 핸들 한 번에), 속성: entget_by_handles·get_entity.
+- 응답에 truncated=true가 오면 next_offset으로 이어 받는다.
+- 배치·뷰포트: get_layouts, 외부 참조: get_xrefs, 블록 속성: get_block_attributes.""",
+}
+
+
+@mcp.tool(structured_output=False)
+async def guide(ctx: Context, topic: str = "작도") -> str:
+    """작업 요령 안내. 그리기(작도)나 토목 명령을 쓰기 전에 먼저 한 번 부른다 — 있는 전용 도구로 빨리 끝내기 위해서다.
+    topic: "작도"(단면도 등 새로 그리기, 기본)·"명령"(토목 명령 91개 쓰기)·"조회"(도면 읽기)·"전체"."""
+    t = (topic or "작도").strip()
+    if t == "전체":
+        return "\n\n".join(GUIDE.values())
+    if t not in GUIDE:
+        raise ToolError("topic은 %s·전체 중 하나입니다: %r" % ("·".join(GUIDE), topic))
+    return GUIDE[t]
 
 
 @mcp.tool(structured_output=False)
@@ -657,6 +703,8 @@ async def redo(ctx: Context) -> str:
 async def run_lisp(ctx: Context, code: str, timeout_s: float = 60.0) -> str:
     """AutoLISP를 실행하고 결과 줄을 받는다(UNDO 한 묶음).
 
+    ※ 먼저 전용 도구를 쓴다: 선·폴리선·원·문자·치수·해치·지시선·블록은 create_* 도구, 한글 글꼴은 set_text_style,
+      토목 작업은 skill_list의 명령이 이미 있다. run_lisp는 전용 도구로 안 되는 조회·편집에만 쓴다(guide 참고).
     - 결과는 이미 열린 파일 핸들 _fp에 (write-line "..." _fp). _fp·_d(탭 문자)는 예약 — open/close/재정의 금지.
     - 길이 제한 없음(파일로 넘겨 eval), 한글·기호 그대로. 좌표는 (rtos x 2 8) 권장.
     - ssget 레이어 필터의 #·.·- 등은 역따옴표 이스케이프: (cons 8 "0.`#축제"). 영역 선택 "_C"/"_W"는 화면 밖을

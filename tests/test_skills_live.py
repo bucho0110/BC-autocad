@@ -31,9 +31,24 @@ async def main():
     params = StdioServerParameters(command=sys.executable, args=["-X", "utf8", os.path.join(ROOT, "src", "server.py")])
     async with stdio_client(params) as (r, w):
         async with ClientSession(r, w) as s:
-            await s.initialize()
+            init = await s.initialize()
             tools = [t.name for t in (await s.list_tools()).tools]
-            check("도구 수 70", len(tools) == 70, len(tools))
+            check("도구 수 71", len(tools) == 71, len(tools))
+
+            async def text(name, **kw):
+                res = await s.call_tool(name, kw)
+                txt = res.content[0].text if res.content else ""
+                if res.isError:
+                    raise RuntimeError("%s: %s" % (name, txt))
+                return txt
+
+            check("안내문 첫머리에 guide", "guide를 한 번 부른다" in (init.instructions or ""))
+            g = await text("guide")
+            check("guide 작도 요령", "set_text_style" in g and "create_dimension" in g and "skill_list" in g)
+            ga = await text("guide", topic="전체")
+            check("guide 전체", all(k in ga for k in ("[작도", "[토목", "[도면")))
+            bad = await s.call_tool("guide", {"topic": "없는주제"})
+            check("guide 잘못된 주제는 오류", bad.isError)
 
             async def call(name, **kw):
                 res = await s.call_tool(name, kw)
