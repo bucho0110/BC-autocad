@@ -66,7 +66,7 @@ class HelpWindow(ui.BaseWindow):
         tree.bind("<Button-1>", self.on_click)
         tree.bind("<Double-1>", lambda e: None if tree.identify_column(e.x) == "#1" else self.open_cmd(tree.focus()))
         self.status("AutoCAD 명령줄에 BCFE처럼 BC를 붙여 입력합니다. 단축 이름을 활성화한 명령은 FE로도 실행됩니다. "
-                    "더블 클릭하면 해당 명령의 대화상자 또는 설정이 열립니다. 전체 해제는 AutoCAD에서 BCOFF 명령으로도 가능합니다.")
+                    "더블 클릭하면 해당 명령의 대화상자 또는 설정이 열립니다. AutoCAD에서 BCON(겹치는 이름 제외 모두 활성화)과 BCOFF(모두 해제) 명령으로도 바꿀 수 있습니다.")
 
     def mark(self, k):
         return ON if k in self.short else OFF

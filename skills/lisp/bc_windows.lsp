@@ -159,5 +159,5 @@
   (princ "\n  BCCALC  도면 값 계산기 (대화상자)")
   (princ "\n  BCMPL   도곽별 일괄 출력 (대화상자)")
   (princ "\n  ※ 명령은 BC를 붙여 입력합니다(FE → BCFE). 단축 이름은 BCHELP 대화상자에서 활성화합니다.")
-  (if bc:*short* (progn (princ "\n  ※ 활성화된 단축 이름:") (foreach _k bc:*short* (princ (strcat " " _k))) (princ "  (모두 해제: BCOFF)")))
+  (if bc:*short* (progn (princ "\n  ※ 활성화된 단축 이름:") (foreach _k bc:*short* (princ (strcat " " _k))) (princ "  (모두 켜기: BCON, 모두 해제: BCOFF)")))
   (princ))

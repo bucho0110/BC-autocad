@@ -57,6 +57,11 @@ try:
     rows = a.lisp(STATE, 30)
     check("BCOFF: 즉시 모두 꺼짐", rows == ["FE=없음\tBCFE있음\tXY=없음\tMPLOT=없음\tnil"], rows)
     check("BCOFF: 설정 파일 비움", S.load_short() == [], S.load_short())
+    # 4-1) BCON → 겹치지 않는 이름만 켜고, acad.pgp 단축키와 겹치는 CL·DCON은 건너뛴다
+    rows = a.lisp('(c:BCON) (write-line (strcat (if c:FE "FE켬" "FE꺼짐") _d (if (member "CL" bc:*short*) "CL켬" "CL건너뜀") _d (if (member "DCON" bc:*short*) "DCON켬" "DCON건너뜀")) _fp)', 60)
+    check("BCON: 겹치지 않는 것만 켬", rows == ["FE켬	CL건너뜀	DCON건너뜀"], rows)
+    check("BCON: 설정 파일에 저장", "FE" in S.load_short() and "CL" not in S.load_short(), S.load_short())
+    a.lisp('(c:BCOFF) (write-line "" _fp)', 30)
     # 5) 먼저 있던 다른 리습 c:CST: 짧은 이름이 꺼져 있으면 그대로 두고, 켜면 우리 것, 끄면 다시 남의 것
     a.lisp('(defun c:CST () "남의 CST") (setq bc:libver nil)', 30)
     rows = a.lisp('(write-line (strcat (vl-princ-to-string (c:CST)) _d (if c:BCCST "BCCST있음" "없음")) _fp)', 60)
