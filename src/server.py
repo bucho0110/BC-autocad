@@ -67,6 +67,12 @@ INSTRUCTIONS = """AutoCAD 제어 MCP(한글판). AutoCAD의 '활성 도면'에 �
   쓰지 말 것. 길이 제한 없음(파일로 넘김), 한글 가능.
 - "결과를 확인할 수 없다"·"취소했다"는 오류가 오면 같은 작업을 다시 보내지 말고 먼저 도면을 확인한다.
 - 화면 확인은 capture_view(도면 영역만 PNG로 저장, 포커스를 뺏지 않음).
+- 한글: 새 도면의 Standard 스타일(txt.shx)은 한글이 ??로 보인다. 한글 문자를 쓰기 전에 get_text_styles로
+  korean_capable을 보고, 없으면 set_text_style(이름, typeface="맑은 고딕") 또는
+  set_text_style(이름, font_file="romans.shx", bigfont_file="whgtxt.shx")로 만든 뒤 create_text·create_mtext·create_leader의
+  style에 준다. 글꼴을 run_lisp로 직접 바꾸지 않는다.
+- 단면도 작도: 치수는 create_dimension(kind="horizontal"·"vertical", scale로 크기), 철근·재료 표기는 create_leader,
+  이미 그린 닫힌 경계의 해치는 create_hatch(boundary_handles=[...]). 같은 것을 run_lisp로 흉내 내지 않는다.
 - "백그라운드로", "화면 건드리지 말고 파일로" 같은 요청이나 큰 그림·새 도면 만들기는 build_drawing_background
   (화면 없는 AutoCAD로 새 DWG를 만든다. 사용자의 AutoCAD 화면은 건드리지 않는다).
 - 스킬 명령 91개(EL·지형·종단·횡단·좌표·선형·측점·제방·사면·하천 횡단·수량·표·정리·수정·레이어·도면 불러오기·계산기·다중 플롯, 예: FE·CCON·GRP·DRP·QCAR·RET·XY·DSTA·HWLM·LOL·CALC): skill_list로 목록,
@@ -446,22 +452,42 @@ async def set_text_style(ctx: Context, name: str, typeface: str = "", font_file:
 
 
 @mcp.tool(structured_output=False)
-async def create_hatch(ctx: Context, points: Union[str, List[List[float]]], pattern: str = "SOLID",
-                       scale: float = 1.0, layer: str = "", color: int = -1, true_color: str = "",
+async def create_hatch(ctx: Context, points: Union[str, List[List[float]], None] = None, pattern: str = "SOLID",
+                       scale: float = 1.0, boundary_handles: Union[str, List[str], None] = None,
+                       layer: str = "", color: int = -1, true_color: str = "",
                        linetype: str = "", lineweight: int = -1) -> str:
-    """해치. points: 경계 꼭짓점 3개 이상(닫힌 경계 폴리선도 함께 만들어 boundary_handle로 준다)."""
-    return await _run(ctl.create_hatch, points, pattern, scale,
+    """해치. 둘 중 하나:
+    - points: 경계 꼭짓점 3개 이상(닫힌 경계 폴리선도 함께 만들어 boundary_handle로 준다).
+    - boundary_handles: 이미 그린 닫힌 경계(폴리선·원·타원·스플라인) 핸들 배열. 첫 핸들이 바깥, 나머지는 구멍.
+      경계를 새로 만들지 않으므로 선이 겹치지 않는다.
+    scale은 무늬 축척(도면 축척에 맞춰 키운다. 1/50 도면이면 대략 0.05~0.1 근처부터 capture_view로 확인)."""
+    return await _run(ctl.create_hatch, points, pattern, scale, boundary_handles,
                       **_style(layer, color, true_color, linetype, lineweight))
 
 
 @mcp.tool(structured_output=False)
 async def create_dimension(ctx: Context, start_x: float, start_y: float, end_x: float, end_y: float,
                            text_x: Optional[float] = None, text_y: Optional[float] = None,
-                           text_height: float = 0.0, layer: str = "", color: int = -1, true_color: str = "",
+                           text_height: float = 0.0, kind: str = "aligned", angle: float = 0.0,
+                           scale: float = 0.0, layer: str = "", color: int = -1, true_color: str = "",
                            linetype: str = "", lineweight: int = -1) -> str:
-    """정렬 치수. text_x/y를 안 주면 선분 옆에 자동 배치. text_height 0이면 치수 스타일 그대로."""
+    """치수. kind: aligned(두 점을 잇는 정렬 치수, 기본)·horizontal(수평)·vertical(수직)·rotated(angle 도 방향).
+    text_x/y는 치수선(문자) 위치 — 안 주면 수평은 위, 수직은 왼쪽, 정렬은 선분 왼편에 자동 배치.
+    scale: 치수 전체 축척(DIMSCALE과 같음, 화살표·문자·간격이 함께 커진다). 도면 단위 m에 1/50 출력이면 0.05,
+    mm 단위에 1/50이면 50. 0이면 치수 스타일 그대로. text_height는 문자만 따로 정할 때."""
     tp = [text_x, text_y] if text_x is not None and text_y is not None else None
-    return await _run(ctl.create_dimension, [start_x, start_y], [end_x, end_y], tp, text_height,
+    return await _run(ctl.create_dimension, [start_x, start_y], [end_x, end_y], tp, text_height, kind, angle, scale,
+                      **_style(layer, color, true_color, linetype, lineweight))
+
+
+@mcp.tool(structured_output=False)
+async def create_leader(ctx: Context, points: Union[str, List[List[float]]], text: str, text_height: float = 2.5,
+                        arrow_size: float = 0.0, style: str = "", layer: str = "", color: int = -1,
+                        true_color: str = "", linetype: str = "", lineweight: int = -1) -> str:
+    """지시선 + 문자(MLEADER, 철근·재료 표기 등). points: 첫 점이 화살표 끝, 마지막 점 쪽에 문자가 붙는다(2점 이상).
+    text_height는 도면 단위 문자 높이, arrow_size 0이면 문자 높이와 같게. style은 create_text와 같다
+    (한글은 korean_capable 스타일). 여러 줄은 \\P."""
+    return await _run(ctl.create_leader, points, text, text_height, arrow_size, style,
                       **_style(layer, color, true_color, linetype, lineweight))
 
 

@@ -88,6 +88,21 @@ tx = t("create_text", c.create_text, "한글 No.1+681 ~ No.1+760 ±0.00° (10m²
 mt = t("create_mtext", c.create_mtext, "첫줄\\P둘째줄 ±", 0, 80, 2.5, 50)
 ha = t("create_hatch", c.create_hatch, [[110, 0], [130, 0], [130, 20]], "ANSI31", 0.5, layer="해치")
 dm = t("create_dimension", c.create_dimension, [0, -10], [100, -10])
+dh = t("create_dimension_h", c.create_dimension, [0, -30], [30, -23], kind="horizontal", scale=2)
+dv = t("create_dimension_v", c.create_dimension, [0, -30], [30, -23], kind="vertical")
+t("create_dimension_bad_kind", c.create_dimension, [0, 0], [1, 1], kind="xx", expect_error=True)
+if dh and dv:
+    m = S(c.run_lisp, '(foreach h (list "%s" "%s") (setq o (vlax-ename->vla-object (handent h)))'
+          ' (write-line (strcat (rtos (vla-get-Measurement o) 2 4) _d (rtos (vla-get-ScaleFactor o) 2 2)) _fp))'
+          % (dh["handle"], dv["handle"]))["lines"]
+    check("치수 수평 30·축척 2, 수직 7", m == ["30\t2", "7\t1"], m)
+hb = t("create_hatch_boundary", c.create_hatch, None, "ANSI31", 0.5, boundary_handles=[rc["handle"]] if rc else [])
+if hb:
+    check("기존 경계 해치(경계 새로 안 만듦)", "boundary_handle" not in hb and hb.get("boundary_handles") == [rc["handle"]], hb)
+t("create_hatch_no_input", c.create_hatch, None, expect_error=True)
+ld = t("create_leader", c.create_leader, [[150, 30], [165, 45], [175, 45]], "주철근 D19@200", 2.5)
+if ld:
+    check("지시선 MULTILEADER", ld.get("type") == "MULTILEADER", ld)
 t("create_bad_radius", c.create_circle, [0, 0], 0, expect_error=True)
 t("create_bad_color", c.create_line, [0, 0], [1, 1], color=300, expect_error=True)
 t("create_bad_lt", c.create_line, [0, 0], [1, 1], linetype="NO_SUCH_LT", expect_error=True)

@@ -1237,9 +1237,13 @@ class AcadControl:
         out["content"] = text
         return out
 
-    def create_hatch(self, points, pattern="SOLID", scale=1.0, **style) -> dict:
-        pts = V.json_points(points, "points", 3)
+    def create_hatch(self, points=None, pattern="SOLID", scale=1.0, boundary_handles=None, **style) -> dict:
         sc = V.positive(scale, "scale")
+        if boundary_handles:
+            return self._hatch_existing(V.parse_handles(boundary_handles), pattern, sc, style)
+        if points is None or points == "":
+            raise ValueError("points(경계 꼭짓점) 또는 boundary_handles(이미 그린 닫힌 경계) 중 하나를 주세요")
+        pts = V.json_points(points, "points", 3)
         flat = [c for p in pts for c in p[:2]]
         d = self._require_idle()
         with self._undo_group(d):
@@ -1268,21 +1272,98 @@ class AcadControl:
             return {"handle": hatch.Handle, "type": "HATCH", "boundary_handle": boundary.Handle,
                     "drawing": d.Name}
 
-    def create_dimension(self, start, end, text_pos=None, text_height=0.0, **style) -> dict:
+    def _hatch_existing(self, handles, pattern, sc, style) -> dict:
+        """이미 그린 닫힌 경계(폴리선·원·타원·스플라인)로 해치. 첫 핸들이 바깥 경계, 나머지는 구멍."""
+        d = self._require_idle()
+        objs = [self._resolve(d, h) for h in handles]
+        with self._undo_group(d):
+            hatch = None
+            try:
+                hatch = d.ModelSpace.AddHatch(0, pattern, True)
+                for i, o in enumerate(objs):
+                    loop = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_DISPATCH, [unwrap(o)])
+                    (hatch.AppendInnerLoop if i else hatch.AppendOuterLoop)(loop)
+                if pattern.upper() != "SOLID":
+                    hatch.PatternScale = sc
+                self._apply_style(d, hatch, **style)
+                hatch.Evaluate()
+            except Exception as e:
+                try:
+                    if hatch is not None:
+                        hatch.Delete()
+                except Exception:
+                    pass
+                raise RuntimeError("해치 생성 실패(경계는 닫힌 폴리선·원·타원·스플라인이어야 함, 만든 해치 삭제함): %s"
+                                   % e) from e
+            return {"handle": hatch.Handle, "type": "HATCH", "boundary_handles": handles, "drawing": d.Name}
+
+    _DIM_KINDS = {"aligned": None, "horizontal": 0.0, "vertical": 90.0, "rotated": None}
+
+    def create_dimension(self, start, end, text_pos=None, text_height=0.0, kind="aligned", angle=0.0,
+                         scale=0.0, **style) -> dict:
         s, e = V.point(start, "start"), V.point(end, "end")
+        kind = (kind or "aligned").strip().lower()
+        if kind not in self._DIM_KINDS:
+            raise ValueError("kind는 aligned·horizontal·vertical·rotated 중 하나입니다: %r" % kind)
+        rot = self._DIM_KINDS[kind] if kind in ("horizontal", "vertical") else V.num(angle, "angle")
         if text_pos is None:
-            length = math.hypot(e[0] - s[0], e[1] - s[1]) or 1.0
-            nx, ny = -(e[1] - s[1]) / length, (e[0] - s[0]) / length
+            if kind == "aligned":
+                length = math.hypot(e[0] - s[0], e[1] - s[1]) or 1.0
+                nx, ny = -(e[1] - s[1]) / length, (e[0] - s[0]) / length
+            else:
+                # 치수선 방향의 왼쪽(수평이면 위, 수직이면 왼쪽)으로 띄운다
+                a = math.radians(rot)
+                length = abs((e[0] - s[0]) * math.cos(a) + (e[1] - s[1]) * math.sin(a)) or 1.0
+                nx, ny = -math.sin(a), math.cos(a)
             off = max(length * 0.1, 1.0)
             text_pos = ((s[0] + e[0]) / 2 + nx * off, (s[1] + e[1]) / 2 + ny * off, 0.0)
         t = V.point(list(text_pos)[:3], "text_pos")
         th = V.num(text_height, "text_height")
+        sf = V.num(scale, "scale")
+        if sf < 0:
+            raise ValueError("scale은 0 이상이어야 합니다(0=치수 스타일 그대로)")
+
+        def make(ms):
+            if kind == "aligned":
+                return ms.AddDimAligned(self._vpt(*s), self._vpt(*e), self._vpt(*t))
+            return ms.AddDimRotated(self._vpt(*s), self._vpt(*e), self._vpt(*t), math.radians(rot))
 
         def extra(ent):
+            if sf > 0:
+                ent.ScaleFactor = sf
             if th > 0:
                 ent.TextHeight = th
-        return self._create("치수", lambda ms: ms.AddDimAligned(self._vpt(*s), self._vpt(*e), self._vpt(*t)),
-                            style, extra)
+        out = self._create("치수", make, style, extra)
+        out["kind"] = kind
+        return out
+
+    def create_leader(self, points, text, text_height=2.5, arrow_size=0.0, text_style="", **style) -> dict:
+        """지시선 + 문자(MLEADER). points 첫 점이 화살표 끝, 마지막 점에 문자가 붙는다."""
+        if not isinstance(text, str) or text == "":
+            raise ValueError("text가 비어 있습니다")
+        pts = V.json_points(points, "points", 2)
+        h = V.positive(text_height, "text_height")
+        ar = V.num(arrow_size, "arrow_size")
+        if ar < 0:
+            raise ValueError("arrow_size는 0 이상이어야 합니다(0=문자 높이와 같게)")
+        flat = [c for p in pts for c in (p[0], p[1], 0.0)]
+
+        def make(ms):
+            r = ms.AddMLeader(self._varr(flat), 0)
+            return r[0] if isinstance(r, tuple) else r
+
+        def extra(ent):
+            ent.ContentType = 2  # acMTextContent
+            if text_style:
+                ent.TextStyleName = self._text_style_name(self.doc, text_style)
+            ent.TextString = text
+            ent.TextHeight = h
+            ent.ArrowheadSize = ar or h
+            ent.LandingGap = h * 0.3
+            ent.DoglegLength = h
+        out = self._create("지시선", make, style, extra)
+        out["content"] = text
+        return out
 
     # ------------------------------------------------------------ 블록
 
