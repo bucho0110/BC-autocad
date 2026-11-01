@@ -74,15 +74,15 @@ def make_venv():
 
 def check_python(py):
     code = "import mcp, win32com.client, PIL; print('ok')"
-    r = subprocess.run([py, "-c", code], capture_output=True, text=True)
+    r = subprocess.run([py, "-c", code], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         say("필수 패키지가 없습니다. 아래를 먼저 실행하세요:")
         say('  "%s" -m pip install -r "%s"' % (py, os.path.join(ROOT, "requirements.txt")))
         return False
-    r = subprocess.run([py, "-c", "import pypdf"], capture_output=True, text=True)
+    r = subprocess.run([py, "-c", "import pypdf"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         say("참고: pypdf가 없어 다중 플롯의 PDF 병합·사용자 용지 변환은 꺼집니다.")
-    r = subprocess.run([py, "-c", "import fontTools"], capture_output=True, text=True)
+    r = subprocess.run([py, "-c", "import fontTools"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         say("참고: fonttools가 없어 CTS 문자 외곽선 그림자는 동작하지 않습니다(설치: \"%s\" -m pip install fonttools)." % py)
     return True
@@ -92,7 +92,7 @@ def check_acad_version(py):
     """실행 중인 AutoCAD가 2021(R24.0) 미만이면 False. AutoCAD가 꺼져 있으면 확인하지 못하므로 True(설치는 계속).
     2020 이하는 LISP이 UTF-8 .lsp와 (open … "utf8")을 지원하지 않아 명령과 MCP가 동작하지 않는다."""
     code = "import win32com.client as w; print(w.GetActiveObject('AutoCAD.Application').Version)"
-    r = subprocess.run([py, "-c", code], capture_output=True, text=True)
+    r = subprocess.run([py, "-c", code], capture_output=True, text=True, encoding="utf-8", errors="replace")
     ver = (r.stdout or "").strip()
     if r.returncode != 0 or not ver:
         return True
@@ -142,14 +142,14 @@ def write_bundle_xml():
     """PackageContents.xml — AutoCAD 2021(R24.0) 이상, 도면마다(PerDocument) 켤 때 불러온다.
     2021부터 LISP이 UTF-8 .lsp(LISPSYS=1)와 (open … "utf8")을 지원한다. 2020 이하는 이 둘이 없어 대상에서 뺀다."""
     xml = """<?xml version="1.0" encoding="utf-8"?>
-<ApplicationPackage SchemaVersion="1.0" AppVersion="0.5.1" ProductType="Application" Name="BC AutoCAD"
+<ApplicationPackage SchemaVersion="1.0" AppVersion="0.5.2" ProductType="Application" Name="BC AutoCAD"
     Description="BC AutoCAD 토목 명령(BCFE·BCXY·BCMPL…, 목록 BCHELP)" Author="BC"
     ProductCode="{pc}" UpgradeCode="{uc}">
   <CompanyDetails Name="BC" />
   <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.0" />
   <Components Description="LISP">
     <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.0" />
-    <ComponentEntry AppName="BCAutoCAD" Version="0.5.1" ModuleName="./Contents/bc_autocad.lsp"
+    <ComponentEntry AppName="BCAutoCAD" Version="0.5.2" ModuleName="./Contents/bc_autocad.lsp"
         AppDescription="BC AutoCAD 스킬 명령 불러오기" LoadOnCommandInvocation="False" LoadOnAutoCADStartup="True"
         PerDocument="True" />
   </Components>
@@ -206,6 +206,14 @@ def acad_setup():
         say("TRUSTEDPATHS 이미 있음")
     startup_remove_old(app)
     return True
+
+
+def acad_setup_in(py):
+    """신뢰 경로 단계는 AutoCAD 연결 부품(pywin32)이 있는 py로 돌린다.
+    설치를 시작한 파이썬(python.org에서 막 깐 것)에는 pywin32가 없어 여기서 멈추고 뒤의 등록까지 빠졌다(2026-11-01)."""
+    if os.path.normcase(os.path.abspath(py)) == os.path.normcase(os.path.abspath(sys.executable)):
+        return acad_setup()
+    return subprocess.run([py, os.path.abspath(__file__), "--acad-only"]).returncode == 0
 
 
 def startup_remove_old(app):
@@ -366,7 +374,11 @@ def main():
     ap.add_argument("--codex", action="store_true")
     ap.add_argument("--acad", action="store_true")
     ap.add_argument("--all", action="store_true")
+    ap.add_argument("--acad-only", action="store_true", help=argparse.SUPPRESS)  # acad_setup_in이 py로 다시 부를 때
     a = ap.parse_args()
+    if a.acad_only:
+        acad_setup()
+        return 0
     py = a.python or sys.executable
     if a.venv or (a.all and not a.python):
         py = make_venv()
@@ -376,7 +388,7 @@ def main():
         return 1
     write_loader(py)
     if a.acad or a.all:
-        acad_setup()
+        acad_setup_in(py)
     if a.claude or (a.all and shutil.which("claude")):
         register_claude(py)
     if a.antigravity or (a.all and os.path.isdir(os.path.join(os.path.expanduser("~"), ".gemini"))):

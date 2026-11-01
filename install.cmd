@@ -6,7 +6,7 @@ where python >nul 2>nul
 if errorlevel 1 (
   echo.
   echo [오류] Python이 설치되어 있지 않습니다. 본 도구는 Python을 배포하지 않습니다.
-  echo   1. 공식 웹사이트(https://www.python.org/downloads/)에서 Python 3.10 이상 버전을 내려받아 설치하십시오.
+  echo   1. 공식 웹사이트^(https://www.python.org/downloads/^)에서 Python 3.10 이상 버전을 내려받아 설치하십시오.
   echo   2. 설치 첫 화면 하단의 "Add python.exe to PATH" 옵션을 반드시 선택하십시오.
   echo   3. 설치를 마친 후 install.cmd를 다시 실행하십시오.
   echo.
