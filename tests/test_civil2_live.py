@@ -213,7 +213,7 @@ async def main():
                   [["F1", "", "H13", "상세도만 있음"], ["W1", "H22", "H19", "직경 다름"], ["W2", "H22", "", "상세도 누락"]], r.get("rows"))
             # ---------------------------------------------------------------- bug_report(오류 보고서)
             r = await call("bug_report", problem="시험 보고", command="CL", error_text="실패 D:/과업/지구명/도면이름.dwg")
-            check("bug_report: 버전·AutoCAD·명령 설정, 폴더·도면 이름 가림", "BC.0.5.0" in r["text"] and "신뢰 경로 등록" in r["text"]
+            check("bug_report: 버전·AutoCAD·명령 설정, 폴더·도면 이름 가림", "BC.0.5.1" in r["text"] and "신뢰 경로 등록" in r["text"]
                   and "지구명" not in r["text"] and "도면이름" not in r["text"] and os.path.exists(r["path"]), r["text"][:800])
             print("시험 도면은 저장하지 않았습니다.")
 
