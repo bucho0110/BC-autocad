@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""CCON 등고선 생성 — Z 값이 있는 점·블록·선 정점·EL 문자(또는 이미 만든 삼각망 3D면)로 주곡선·계곡선을 그린다.
+"""CCON 표고점으로 등고선 그리기 — Z 값이 있는 점·블록·선 정점·EL 문자(또는 이미 만든 삼각망 3D면)로 주곡선·계곡선을 그린다.
 
 등고선은 고도(Z)를 가진 LWPOLYLINE이다. build()는 창 없이도 쓴다(MCP skill_run).
 """
@@ -141,7 +141,7 @@ def chunks(parts, size=200000):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "등고선 생성", size="560x720")
+        super().__init__(CMD, "표고점으로 등고선 그리기", size="560x720")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DOE 겹친 객체 삭제 — 긴 객체 밑에 완전히 겹쳐 있는 짧은 선·폴리선·호·원을 지운다.
+"""DOE 중첩선 정리·일직선 병합 — 긴 객체 밑에 완전히 겹쳐 있는 짧은 선·폴리선·호·원을 지운다.
 
 객체 A의 모든 구간(직선·호)이 다른 한 객체 B의 구간 위에 놓이고 A가 B보다 짧으면 A를 지운다.
 완전히 같은 객체(중복)는 설정에 따라 먼저 만든 하나만 남긴다. 일직선 위에서 겹치거나 맞닿은 선(LINE)은 하나로 합칠 수 있다.
@@ -174,7 +174,7 @@ def apply_lisp(gone, merges, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "겹친 객체 삭제", size="500x420")
+        super().__init__(CMD, "중첩선 정리·일직선 병합", size="500x420")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

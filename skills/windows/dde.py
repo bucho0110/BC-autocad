@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DDE 중복 객체 삭제 — 고른 객체 중 똑같은 것(종류별 기준이 소수 자리까지 같음)을 하나만 남기고 지운다.
+"""DDE 동일 중복 객체 정리 — 고른 객체 중 똑같은 것(종류별 기준이 소수 자리까지 같음)을 하나만 남기고 지운다.
 
 종류별 기준: 점(좌표), 선(두 끝점, 방향 무관), 폴리선(닫힘·정점 수·정점·길이·면적, 방향 무관), 원(중심·반지름),
 호(중심·반지름·각), 타원, 문자(내용·높이·각·위치), 블록(이름·위치·축척·각·속성 값), 솔리드·3D면(꼭짓점),
@@ -133,7 +133,7 @@ def types_of(cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "중복 객체 삭제", size="540x420")
+        super().__init__(CMD, "동일 중복 객체 정리", size="540x420")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

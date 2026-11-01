@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""CL 객체 길이 쓰기 — 선·폴리선·호·원·타원·스플라인의 길이를 객체 위에 쓴다.
+"""CL 선 길이 표기 — 선·폴리선·호·원·타원·스플라인의 길이를 객체 위에 쓴다.
 
 길이 = 도면 길이 ÷ (1000 ÷ 축척) m (축척 1000 = m 도면, 1 = mm 도면). 반올림·올림·내림, 단위값(5 단위 등).
 문자 자리: 객체 중간 점·시작점·끝점(선 방향으로, 위·아래), 폴리선은 꺾인 구간마다도 된다.
@@ -96,7 +96,7 @@ def pick_and_write(acad, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "객체 길이 쓰기", size="520x700")
+        super().__init__(CMD, "선 길이 표기", size="520x700")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

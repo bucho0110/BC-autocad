@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""EWT 토적표 내용 엑셀로 — 횡단면마다 붙은 토적표 블록에서 측점·토공 항목 값을 모아 엑셀 표로 낸다.
+"""EWT 토적표 블록 값 엑셀로 모으기 — 횡단면마다 붙은 토적표 블록에서 측점·토공 항목 값을 모아 엑셀 표로 낸다.
 
 토적표는 블록이어야 한다(선만 블록이고 문자는 따로여도 된다).
 - 일반 블록: 토적표 하나에서 측점 칸·항목 칸 영역을 등록하면, 같은 이름의 모든 블록에서 그 영역(블록 기준 좌표) 안 문자를 읽는다.
@@ -124,7 +124,7 @@ def to_rows(items, reg, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "토적표 내용 엑셀로", size="540x560")
+        super().__init__(CMD, "토적표 블록 값 엑셀로 모으기", size="540x560")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

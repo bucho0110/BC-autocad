@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""HAR 종류별 해치 면적 조회 — 고른 해치를 색·레이어·무늬별로 묶어 면적 표를 그린다.
+"""HAR 해치 유형별 면적표 작성 — 고른 해치를 색·레이어·무늬별로 묶어 면적 표를 그린다.
 
 구분을 모두 끄면 전체 면적 하나. 개별 번호를 켜면 해치마다 번호를 쓰고 표에 해치마다 한 줄(묶음마다 소계).
 면적 = 도면 면적 ÷ (1000 ÷ 축척)² ㎡, 단위 ㎡·평(py)·a·ha·㎢. group()·table_rows()는 창 없이도 쓴다(MCP skill_run).
@@ -143,7 +143,7 @@ def fill_missing(ents):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "종류별 해치 면적 조회", size="520x700")
+        super().__init__(CMD, "해치 유형별 면적표 작성", size="520x700")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

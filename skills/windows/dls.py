@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DLS 종단 선형 계산 — 종단면도에 그려 둔 IP 선(폴리선 정점 = 시점·VIP·종점)으로 종곡선을 계산해 계획선을 그린다.
+"""DLS 종곡선 계산·계획선 작도 — 종단면도에 그려 둔 IP 선(폴리선 정점 = 시점·VIP·종점)으로 종곡선을 계산해 계획선을 그린다.
 
 EL은 높이를 아는 점(축척 막대 눈금, 세로선 맨 아래) 하나와 그 EL로, 측점은 IP 선 첫 정점 = 시작 거리로 정한다.
 종곡선 길이는 VIP마다(쉼표 목록) 또는 모두 같은 값. 결과: 계획선 폴리선·경사·VIP(L·K) 문자, VIP 표.
@@ -78,7 +78,7 @@ def build_lisp(vips, x0, base_point, base_el, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "종단 선형 계산", size="540x700")
+        super().__init__(CMD, "종곡선 계산·계획선 작도", size="540x700")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

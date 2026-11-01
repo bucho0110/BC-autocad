@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DRP 엑셀 값으로 종단 그리기 — 엑셀 표(첫 줄 머리)로 지반선·계획선·기타 선과 종단 표를 그린다.
+"""DRP 엑셀 표로 종단면도 작도 — 엑셀 표(첫 줄 머리)로 지반선·계획선·기타 선과 종단 표를 그린다.
 
 머리 이름으로 열을 찾는다(순서 자유):
 - '누가거리'(또는 '거리') 열이 거리, 없으면 '측점' 열(0+000·No.3+5)을 거리로 바꾼다.
@@ -113,7 +113,7 @@ def build(rows, cfg, origin):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "엑셀 값으로 종단 그리기", size="560x900")
+        super().__init__(CMD, "엑셀 표로 종단면도 작도", size="560x900")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

@@ -126,7 +126,7 @@ def run_core(lisp_read, lisp_write, handles_or_rows, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "문자 그림자 생성", size="520x420")
+        super().__init__(CMD, "문자 뒤 그림자 만들기", size="520x420")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

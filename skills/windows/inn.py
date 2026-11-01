@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""INN 임의 숫자 증가 — 문자 내용 중 '?' 자리를 숫자(또는 알파벳·16진수)로 늘려 가며 새로 쓰거나 기존 문자를 고친다.
+"""INN ? 자리 일련번호 매기기 — 문자 내용 중 '?' 자리를 숫자(또는 알파벳·16진수)로 늘려 가며 새로 쓰거나 기존 문자를 고친다.
 
 예: '횡 단 면 도 (?/6)', 시작 1, 증분 1 → 횡 단 면 도 (1/6), (2/6) …
 기존 문자 고치기는 블록 안 문자·속성 문자도 된다(nentsel).
@@ -101,7 +101,7 @@ def lisp_list(vals):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "임의 숫자 증가", size="500x470")
+        super().__init__(CMD, "? 자리 일련번호 매기기", size="500x470")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

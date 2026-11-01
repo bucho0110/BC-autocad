@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""FTF 없는 글꼴 일괄 수정 — 이 PC에 없는 글꼴(SHX·트루타입·큰 글꼴)을 쓰는 문자 스타일을 고른 글꼴로 바꾼다.
+"""FTF 누락 글꼴 대체 — 이 PC에 없는 글꼴(SHX·트루타입·큰 글꼴)을 쓰는 문자 스타일을 고른 글꼴로 바꾼다.
 
 글꼴이 없으면 문자가 ? 로 보이거나 다른 글꼴로 대신 그려진다. '모든 스타일'이면 있는 글꼴도 모두 바꾼다.
 SHX는 AutoCAD 지원 경로(findfile), 트루타입은 윈도우 글꼴 폴더(사용자 글꼴 포함)에서 찾는다. 지금 도면에만 한다.
@@ -99,7 +99,7 @@ def fix_lisp(names, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "없는 글꼴 일괄 수정", size="500x300")
+        super().__init__(CMD, "누락 글꼴 대체", size="500x300")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

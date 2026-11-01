@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""JJJ 선 결합 — 고른 선·호·폴리선 중 끝점이 맞닿은 것끼리 이어 폴리선 하나로 만든다(여러 묶음이면 묶음마다).
+"""JJJ 맞닿은 선 폴리선으로 잇기 — 고른 선·호·폴리선 중 끝점이 맞닿은 것끼리 이어 폴리선 하나로 만든다(여러 묶음이면 묶음마다).
 
 닫힌 폴리선과 3D 폴리선은 건너뛴다. 높이(Z)가 다른 것끼리는 잇지 않는다. 끝점이 허용오차 안이면 맞닿은 것으로 본다.
 새 폴리선의 레이어·색·선종류는 묶음의 첫 객체를 따른다. 처음과 끝이 만나면 닫는다.
@@ -96,7 +96,7 @@ def build(ents, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "선 결합", size="460x260")
+        super().__init__(CMD, "맞닿은 선 폴리선으로 잇기", size="460x260")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

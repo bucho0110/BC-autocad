@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""ETC 엑셀 표 캐드로 — 엑셀에서 고른 범위를 선과 문자로 된 표로 그린다.
+"""ETC 엑셀 범위를 도면 표로 — 엑셀에서 고른 범위를 선과 문자로 된 표로 그린다.
 
 엑셀의 열 너비·행 높이·병합·가로 정렬을 따른다. 크기는 '엑셀 글꼴 크기(기준) → 도면 문자 높이' 비율로 바꾼다
 (예: 11pt 글자를 높이 3으로 쓰면 1pt = 3/11 도면 단위). 숨긴 행·열은 건너뛴다.
@@ -95,7 +95,7 @@ def draw_lisp(rows, origin, cfg, merges=(), widths_pt=None, heights_pt=None, ali
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "엑셀 표 캐드로", size="480x360")
+        super().__init__(CMD, "엑셀 범위를 도면 표로", size="480x360")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

@@ -948,7 +948,7 @@ class CADMultiPlotterApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("MPL  다중 플롯")  # 버전은 BCHELP 창에만
+        self.title("MPL  도곽별 일괄 출력")  # 버전은 BCHELP 창에만
         self.geometry("1100x770")
         self.minsize(1000, 710)
         self.configure(bg="#1E1F22")

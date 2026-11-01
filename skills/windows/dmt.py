@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""DMT 구적도 그리기 — 닫힌 경계(폴리선)를 삼각형으로 나눠 번호·밑변·높이 선과 구적표(밑변 × 높이 ÷ 2)를 그린다.
+"""DMT 삼각형 분할 구적도 작성 — 닫힌 경계(폴리선)를 삼각형으로 나눠 번호·밑변·높이 선과 구적표(밑변 × 높이 ÷ 2)를 그린다.
 
 삼각형은 귀 자르기로 나누되 매번 가장 덜 뾰족한(최소각이 큰) 삼각형을 먼저 잘라 예각 삼각형을 줄인다.
 밑변 = 가장 긴 변, 높이 = 2 × 면적 ÷ 밑변. 표의 면적은 반올림한 밑변·높이로 계산하고(구적 산출 근거),
@@ -157,7 +157,7 @@ def draw_lisp(tris, boundary, origin, cfg, rows, start_no=1):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "구적도 그리기", size="500x560")
+        super().__init__(CMD, "삼각형 분할 구적도 작성", size="500x560")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

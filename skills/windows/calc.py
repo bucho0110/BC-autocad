@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""CALC CAD 계산기 — 문자·치수 값, 객체 길이, 두 점 거리, 면적, 체적을 사칙연산하고 결과를 도면에 쓰거나 문자를 고친다.
+"""CALC 도면 값 계산기 — 문자·치수 값, 객체 길이, 두 점 거리, 면적, 체적을 사칙연산하고 결과를 도면에 쓰거나 문자를 고친다.
 
 산출식 칸에 직접 식을 넣어 계산기처럼 쓸 수도 있다(삼각함수는 도 단위, ^·²·³·√·π 인식).
 evaluate()·values_lisp()·expression()은 창 없이도 쓴다(MCP skill_run).
@@ -274,7 +274,7 @@ def run_mcp(ctl, doc, lib, a, t1, merged_cfg, lq, draw):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "CAD 계산기", size="560x900")
+        super().__init__(CMD, "도면 값 계산기", size="560x900")
         self.acad = A.Acad()
         self.ans = None
         self.value = None

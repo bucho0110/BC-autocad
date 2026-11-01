@@ -48,7 +48,7 @@
       (setq i 0)
       (while (< i (sslength ss)) (setq es (cons (ssname ss i) es) i (1+ i)))
       (initget "E")
-      (setq p1 (getpoint "\n첫 번째 모서리 점 지정 또는 [객체 선택(E)]: "))
+      (setq p1 (getpoint "\n첫 번째 구석점 지정 또는 [객체 선택(E)]: "))
       (cond ((= p1 "E")
              (if (setq o (entsel "\n기준 객체 선택: ")) (setq target (bc:obj-center (car o)))))
             (p1

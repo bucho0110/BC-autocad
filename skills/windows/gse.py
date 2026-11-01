@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""GSE 종단 계획고 찾기 — 종단면도의 계획선(폴리선)에서 원하는 측점들의 계획고를 찾는다.
+"""GSE 종단 계획고 조회·추출 — 종단면도의 계획선(폴리선)에서 원하는 측점들의 계획고를 찾는다.
 
 EL은 높이를 아는 점 하나와 그 EL로, 측점은 계획선 왼쪽 끝 = 시작 거리(또는 측점을 아는 점)로 정한다.
 측점은 입력 목록(엑셀 측점 목록 포함) 또는 간격마다. 찾은 값은 표로 돌려주고, 설정하면 종단에 세로선·문자를 쓴다.
@@ -100,7 +100,7 @@ def draw_lisp(marks, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "종단 계획고 찾기", size="540x700")
+        super().__init__(CMD, "종단 계획고 조회·추출", size="540x700")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

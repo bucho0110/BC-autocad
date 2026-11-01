@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""QCAR 용지도 면적 산출 — 용지 경계와 지적(닫힌 폴리선)이 겹친 편입 면적을 지적마다 구해 번호·목록을 만든다.
+"""QCAR 지적별 편입 면적 계산 — 용지 경계와 지적(닫힌 폴리선)이 겹친 편입 면적을 지적마다 구해 번호·목록을 만든다.
 
 겹침은 AutoCAD 영역(REGION) 교집합으로 계산한다(호·맞닿은 변도 정확). 지적 안에 통째로 든 작은 지적은
 큰 지적에서 뺀다. 지번은 문자 중심이 그 지적 안(안쪽 지적 밖)에 있는 문자, 행정구역은 지번 위치를 품은
@@ -290,7 +290,7 @@ def draw_lisp(items, cfg) -> str:
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "용지도 면적 산출", size="580x780")
+        super().__init__(CMD, "지적별 편입 면적 계산", size="580x780")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

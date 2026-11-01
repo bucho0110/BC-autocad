@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""ADD 숫자 증감 — 고른 문자(치수 문자 포함)의 숫자에 같은 값을 더하고 빼고 곱하고 나눈다.
+"""ADD 문자 속 숫자 사칙연산 — 고른 문자(치수 문자 포함)의 숫자에 같은 값을 더하고 빼고 곱하고 나눈다.
 
 글자가 섞여 있으면 맨 뒤 숫자(또는 맨 앞 숫자)만 바꾼다: EL=123.45 → EL=124.05, GL-100 + 200 → GL100(+ 기호 켜면 GL+100).
 측점 인식을 켜면 1+250·0K120 같은 측점을 거리로 읽어 증감하고 같은 형식으로 쓴다.
@@ -139,7 +139,7 @@ def apply_lisp(changes, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "숫자 증감", size="500x620")
+        super().__init__(CMD, "문자 속 숫자 사칙연산", size="500x620")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

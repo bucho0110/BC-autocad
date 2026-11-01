@@ -27,7 +27,7 @@
 
 (defun bc:ask-base-el (cmd cfg dflt / r)
   ;; 반환: 숫자 / "S"(설정) / nil
-  (setq r (bc:get-number-or-pick "기준점 EL 문자 선택 또는 [EL 값 입력(E)/축척 변경(C)/설정 변경(S)]" "E C S" dflt))
+  (setq r (bc:get-number-or-pick "기준 EL 문자 선택 또는 [직접 입력(E)/축척 변경(C)/설정 변경(S)]" "E C S" dflt))
   (cond ((= r "E") (getreal "\n기준 EL 값 입력: "))
         ((= r "C")
          (if (setq r (getreal (strcat "\n축척 입력(1000=m 도면, 1=mm 도면) <" (bc:rtos (bc:cfg cfg "축척") 2 3) ">: ")))
@@ -80,7 +80,7 @@
      (if (setq bp (getpoint "\n기준점 지정: "))
        (progn
          (setq bp (bc:wcs bp))
-         (while (progn (initget "E") (setq p (getpoint "\nEL 표기점 지정 또는 [폴리선 선택(E)]: ")))
+         (while (progn (initget "E") (setq p (getpoint "\nEL 표기 위치 지정 또는 [폴리선 일괄(E)]: ")))
            (if (= p "E")
              (if (and (setq en (car (entsel "\n정점에 EL 표기할 선·폴리선 선택: "))) (bc:verts en))
                (foreach v (bc:verts en) (bc:fe-core bp base v cfg)))
@@ -150,7 +150,7 @@
     ((= r "S") (bc:open-window "FW") (bc:settings-hint "FW"))
     ((and (numberp r) (setq bp (getpoint "\n기준점 지정: ")))
      (setq bp (bc:wcs bp))
-     (while (progn (initget "E") (setq p (getpoint "\nEL 표기점 지정 또는 [폴리선 선택(E)]: ")))
+     (while (progn (initget "E") (setq p (getpoint "\nEL 표기 위치 지정 또는 [폴리선 일괄(E)]: ")))
        (if (= p "E")
          (if (and (setq en (car (entsel "\n정점에 EL 표기할 선·폴리선 선택: "))) (bc:verts en))
            (foreach v (bc:verts en) (bc:fw-core bp r v cfg)))
@@ -184,7 +184,7 @@
     ((= r "S") (bc:open-window "FEL") (bc:settings-hint "FEL"))
     ((and (numberp r) (setq bp (getpoint "\n기준점 지정: ")))
      (setq bp (bc:wcs bp))
-     (while (progn (initget "E") (setq t1 (getreal "\n표시할 EL 값 입력 또는 [EL 값 선택(E)]: ")))
+     (while (progn (initget "E") (setq t1 (getreal "\nEL 값 입력 또는 [문자에서 읽기(E)]: ")))
        (if (= t1 "E")
          (setq t1 (bc:get-number-or-pick "찾을 EL 문자 선택" "" nil)))
        (if (numberp t1) (bc:fel-core bp r t1 cfg)))))
@@ -253,7 +253,7 @@
   (setq cfg (bc:el-cfg "CEE" bc:cee-extra))
   (princ (strcat "\n<현재 설정 : 축척 = " (bc:rtos (bc:cfg cfg "축척") 2 3) ">"))
   (initget "E S")
-  (setq r (entsel "\n숫자 있는 문자가 포함된 객체 선택(첫 객체) 또는 [축척 변경(E)/설정 변경(S)]: "))
+  (setq r (entsel "\n증감할 문자 객체 선택(첫 객체) 또는 [축척 변경(E)/설정 변경(S)]: "))
   (cond
     ((= r "S") (bc:open-window "CEE") (bc:settings-hint "CEE"))
     ((= r "E")
@@ -335,10 +335,10 @@
      (if (and (setq en (car (entsel "\n정점 EL 보간할 폴리선 선택: ")))
               (or (= (setq m (bc:gel-interp-ok en)) T) (progn (princ (strcat "\n" m ".")) nil))
               (setq p1 (getpoint "\nEL을 아는 첫 정점 지정: "))
-              (setq z1 (bc:get-number-or-pick "그 점의 EL 문자 선택 또는 [EL 값 입력(E)]" "E" nil))
+              (setq z1 (bc:get-number-or-pick "해당 정점 EL 문자 선택 또는 [직접 입력(E)]" "E" nil))
               (setq z1 (if (= z1 "E") (getreal "\nEL 값: ") z1))
               (setq p2 (getpoint "\nEL을 아는 둘째 정점 지정: "))
-              (setq z2 (bc:get-number-or-pick "그 점의 EL 문자 선택 또는 [EL 값 입력(E)]" "E" nil))
+              (setq z2 (bc:get-number-or-pick "해당 정점 EL 문자 선택 또는 [직접 입력(E)]" "E" nil))
               (setq z2 (if (= z2 "E") (getreal "\nEL 값: ") z2)))
        (progn (bc:gel-interp-verts en (bc:wcs p1) z1 (bc:wcs p2) z2) (princ "\n정점 Z 보간 완료(3D 폴리선)."))))
     (T
@@ -350,10 +350,10 @@
                  p2 (car (bc:ent-points t2 T)) z2 (bc:num-in-text (bc:text-of t2)))))
        (progn
          (if (setq p1 (getpoint "\n시작점 지정: "))
-           (progn (setq z1 (bc:get-number-or-pick "시작점 EL 문자 선택 또는 [EL 값 입력(E)]" "E" nil))
+           (progn (setq z1 (bc:get-number-or-pick "시작 EL 문자 선택 또는 [직접 입력(E)]" "E" nil))
                   (if (= z1 "E") (setq z1 (getreal "\nEL 값: ")))))
          (if (and z1 (setq p2 (getpoint p1 "\n끝점 지정: ")))
-           (progn (setq z2 (bc:get-number-or-pick "끝점 EL 문자 선택 또는 [EL 값 입력(E)]" "E" nil))
+           (progn (setq z2 (bc:get-number-or-pick "끝 EL 문자 선택 또는 [직접 입력(E)]" "E" nil))
                   (if (= z2 "E") (setq z2 (getreal "\nEL 값: ")))))
          (if p1 (setq p1 (bc:wcs p1))) (if p2 (setq p2 (bc:wcs p2)))))
      (if (and p1 z1 p2 z2)
@@ -412,7 +412,7 @@
     (T
      (setq en (if (and en (bc:curve-p (car en))) (car en)))
      ;; 두 점 방식에서도 S로 설정 창을 열 수 있게
-     (setq r (bc:get-number-or-pick "기준점 EL 문자 선택 또는 [EL 값 입력(E)/설정 변경(S)]" "E S" nil))
+     (setq r (bc:get-number-or-pick "기준 EL 문자 선택 또는 [직접 입력(E)/설정 변경(S)]" "E S" nil))
      (cond ((= r "E") (setq r (getreal "\n기준 EL 값: ")))
            ((= r "S") (bc:open-window "SLEL") (bc:settings-hint "SLEL") (setq r nil)))
      (if (and (numberp r) (setq sl (bc:read-slope cfg)) (setq bp (getpoint "\n기준점 지정: ")))

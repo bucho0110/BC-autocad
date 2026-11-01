@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""RCHK 구조도/상세도 철근 목록 비교 검사 — 구조도의 철근 번호 표시와 철근 상세를 번호·직경으로 대조한다.
+"""RCHK 구조도·상세도 철근 대조 — 구조도의 철근 번호 표시와 철근 상세를 번호·직경으로 대조한다.
 
 구조도: 원(또는 철근 번호 블록) 안 번호 + 원 근처 문자의 직경(H22·D13@250 …).
 상세도: RET과 같은 인식(원 안 번호, 밑줄 위 직경·L=·N=).
@@ -109,7 +109,7 @@ SEL = ('(princ "\\n%s 선택: ") (setq _ss (ssget (list (cons 0 "CIRCLE,INSERT,T
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "구조도/상세도 철근 비교 검사", size="560x560")
+        super().__init__(CMD, "구조도·상세도 철근 대조", size="560x560")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

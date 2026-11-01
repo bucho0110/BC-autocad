@@ -113,7 +113,7 @@ class Window(ui.BaseWindow):
             return
         body = ('(setq _p (getpoint "\\n종단 시작점 지정: "))'
                 ' (if _p (progn (setq _p (trans _p 1 0))'
-                ' (setq _e (bc:get-number-or-pick "종단 시작점의 EL 문자 선택 또는 [EL 값 입력(E)]" "E" nil))'
+                ' (setq _e (bc:get-number-or-pick "시작점 EL 문자 선택 또는 [직접 입력(E)]" "E" nil))'
                 ' (if (= _e "E") (setq _e (getreal "\\nEL 값: ")))'
                 ' (if (numberp _e) (write-line (strcat "S\\t" (bc:rtos (car _p) 2 10) "\\t" (bc:rtos (cadr _p) 2 10) "\\t" (bc:rtos _e 2 10)) _fp))))')
         rows = self.in_cad(self.acad.lisp, body, A.PICK_TIMEOUT)

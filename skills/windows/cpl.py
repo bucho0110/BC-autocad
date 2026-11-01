@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""CPL 폴리선 상호 변환 — 고른 폴리선(경량 폴리선·2D 폴리선·3D 폴리선)을 다른 형식으로 바꾼다.
+"""CPL 폴리선 유형 변환(2D·3D) — 고른 폴리선(경량 폴리선·2D 폴리선·3D 폴리선)을 다른 형식으로 바꾼다.
 
 Z 유지: 3D → 2D·경량은 첫 정점 Z를 고도로, 2D·경량 → 3D는 고도를 모든 정점 Z로. 끄면 Z 0.
 3D 폴리선은 호(볼록)를 가질 수 없어 호 구간을 각도 간격으로 잘게 나눈다.
@@ -122,7 +122,7 @@ def convert_lisp(polys, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "폴리선 상호 변환", size="480x420")
+        super().__init__(CMD, "폴리선 유형 변환(2D·3D)", size="480x420")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

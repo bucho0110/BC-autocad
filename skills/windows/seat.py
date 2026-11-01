@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""SEAT 선택 객체 면적 표 그리기 — 고른 닫힌 객체(폴리선·원·타원·스플라인·해치)마다 번호를 쓰고 면적 표를 그린다.
+"""SEAT 닫힌 객체 면적표 작성 — 고른 닫힌 객체(폴리선·원·타원·스플라인·해치)마다 번호를 쓰고 면적 표를 그린다.
 
 구분: 레이어·색·없음(번호만). 순서: 구분 순·좌표 순(위 → 아래, 왼 → 오른)·선택 순·면적 순.
 둘레 길이 열도 넣을 수 있다. 면적 = 도면 면적 ÷ (1000 ÷ 축척)² ㎡. build()는 창 없이도 쓴다(MCP skill_run).
@@ -104,7 +104,7 @@ def draw_lisp(rows, merges, marks, origin, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "선택 객체 면적 표 그리기", size="520x760")
+        super().__init__(CMD, "닫힌 객체 면적표 작성", size="520x760")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

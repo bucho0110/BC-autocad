@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""CFB 횡단면도 야장으로 — 횡단 지반선 정점의 거리·EL을 엑셀(야장)로 내보내거나 정점마다 문자로 쓴다.
+"""CFB 횡단 지반선을 야장 엑셀로 — 횡단 지반선 정점의 거리·EL을 엑셀(야장)로 내보내거나 정점마다 문자로 쓴다.
 
 일괄: 견본 단면 하나(지반선·중심선·측점 문자·지반고 문자 — DCEM과 같은 견본)로 도면의 모든 횡단을 찾는다.
 하나씩: 지반선 선택 → 중심 점(EL 아는 높이) 지정 → 측점·EL 입력.
@@ -127,7 +127,7 @@ def batch(spec, rows, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "횡단면도 야장으로", size="540x700")
+        super().__init__(CMD, "횡단 지반선을 야장 엑셀로", size="540x700")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

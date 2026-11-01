@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""TTE 문자를 엑셀로 — 고른 문자·치수 값·블록 속성 값을 정렬 순서대로 엑셀 선택 셀부터 넣는다.
+"""TTE 문자 값 엑셀에 넣기 — 고른 문자·치수 값·블록 속성 값을 정렬 순서대로 엑셀 선택 셀부터 넣는다.
 
 여러 번 고르면 고른 묶음(그룹)마다 다음 열(또는 다음 행)에 이어 넣는다.
 grid()·after_lisp()는 창 없이도 쓴다(MCP skill_run).
@@ -110,7 +110,7 @@ def after_lisp(handles, cfg) -> str:
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "문자를 엑셀로", size="520x440")
+        super().__init__(CMD, "문자 값 엑셀에 넣기", size="520x440")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

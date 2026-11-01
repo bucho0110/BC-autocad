@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""CTE 캐드 표 엑셀로 — 선과 문자로 된 CAD 표를 엑셀 표로 옮긴다(병합 칸 포함).
+"""CTE 도면 표를 엑셀로 옮기기 — 선과 문자로 된 CAD 표를 엑셀 표로 옮긴다(병합 칸 포함).
 
 표의 가로·세로선 위치로 칸을 나누고, 칸 사이에 선이 없으면 병합으로 본다. 끊긴 선·겹친 선도 된다.
 한 칸에 문자가 여러 개면 위 → 아래(줄 바꿈), 왼 → 오른(띄어쓰기)으로 잇는다. 기울어진 선은 무시한다.
@@ -139,7 +139,7 @@ def to_excel(rows, merges, cfg):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "캐드 표 엑셀로", size="480x330")
+        super().__init__(CMD, "도면 표를 엑셀로 옮기기", size="480x330")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)

@@ -438,7 +438,7 @@ def bad_lisp(bad):
 
 class Window(ui.BaseWindow):
     def __init__(self):
-        super().__init__(CMD, "철근 재료표 작성", size="580x820")
+        super().__init__(CMD, "철근 상세 읽어 재료표 그리기", size="580x820")
         self.acad = A.Acad()
         body = tk.Frame(self, bg=ui.PANEL)
         body.pack(fill="both", expand=True, padx=10, pady=6)
