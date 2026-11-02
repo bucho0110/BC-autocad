@@ -1,10 +1,11 @@
-# BC-autocad — AutoCAD MCP 서버 (한글판) · BC.0.5.4
+# BC-autocad — AutoCAD MCP 서버 (한글판) · BC.0.5.5
 
 **AutoCAD**를 AI 에이전트(Claude Code·안티그래비티·Codex)에서 자연어로 제어할 수 있도록 지원하는 MCP 서버입니다.
 AI 연동 없이 AutoCAD에서 직접 실행할 수 있는 **명령 91개**(토목 EL·지형·종단·횡단·좌표·측점·사면·하천 횡단, 수량·면적·구적, CAD 표↔Excel, 도면 정리, 문자 편집, 철근 재료표·철근 검사, 레이어, 계산기, 여러 도면 불러오기, 다중 플롯)도 함께 제공합니다.
 
 - 개발자: **BUCHO** · MCP 도구 71개 · AutoCAD 명령 91개 · 모든 설명과 메시지는 한국어로 제공합니다.
-- 버전 **BC.0.5.4**: 현재 사용자 테스트 단계의 버전이며, 검증을 마친 후 정식 버전(BC.1.0.0)으로 갱신할 예정입니다. 버전 정보는 AutoCAD `BCHELP` 대화상자 제목 표시줄에서도 확인할 수 있습니다.
+- 버전 **BC.0.5.5**: 현재 사용자 테스트 단계의 버전이며, 검증을 마친 후 정식 버전(BC.1.0.0)으로 갱신할 예정입니다. 버전 정보는 AutoCAD `BCHELP` 대화상자 제목 표시줄에서도 확인할 수 있습니다.
+- BC.0.5.5 변경 사항: 치수 문자 위치를 한 좌표만 지정해도 반영하고, 지시선 문자가 선이 꺾인 방향(왼쪽·오른쪽)에 붙도록 고쳤습니다. 사용 예시를 하천 표준횡단면도로 바꿨습니다.
 - BC.0.5.4 변경 사항: 단축 이름을 한 번에 활성화하는 `BCON` 명령을 추가했습니다. 이 PC에서 이미 사용 중인 이름은 건너뜁니다.
 - BC.0.5.3 변경 사항: 짧은 이름을 켜지 않은 명령이 같은 이름의 AutoCAD 단축키(예: `CL` 중심선, `DCON` 치수 구속)를 막던 문제를 고쳤습니다.
   짧은 이름을 켰다가 끄면 원래 단축키가 다시 동작합니다.
@@ -51,7 +52,7 @@ AI 에이전트에 평소 말하듯 요청하면, 에이전트가 MCP 도구로 
 > - 글자 겹침 검사 결과 28개 중 겹침이 없으며, 좌우 화면도 직접 확인했습니다.
 > - 여유고·둑마루폭은 설계기준과 대조하지 않았습니다. 시험용 도면이므로 가정값입니다.
 >
-> 사용한 도구: `guide`(작도 요령) → `skill_list`(토목 명령 확인) → `new_drawing` → `set_text_style`(한글 글꼴) → `set_layer` → `create_polyline` → `create_hatch`(그려 둔 경계에 해치) → `create_dimension` → `create_text`·`create_mtext`·`create_leader`(지시선) → `run_lisp`(치수 문자 위치 일괄 조정) → `zoom_window`·`capture_view`(결과 확인) → `find_text_overlaps`(글자 겹침 검사)
+> 사용한 도구: `guide`(작도 요령) → `skill_list`(토목 명령 확인) → `new_drawing` → `set_text_style`(한글 글꼴) → `set_layer` → `create_polyline` → `create_hatch`(그려 둔 경계에 해치) → `create_dimension` → `create_text`·`create_mtext`·`create_leader`(지시선) → `zoom_window`·`capture_view`(결과 확인) → `find_text_overlaps`(글자 겹침 검사)
 
 **요청 요령**
 - **새 도면에 그리게 합니다.** 작업 중인 도면을 건드리지 않습니다.

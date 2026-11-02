@@ -519,9 +519,10 @@ async def create_dimension(ctx: Context, start_x: float, start_y: float, end_x: 
                            linetype: str = "", lineweight: int = -1) -> str:
     """치수. kind: aligned(두 점을 잇는 정렬 치수, 기본)·horizontal(수평)·vertical(수직)·rotated(angle 도 방향).
     text_x/y는 치수선(문자) 위치 — 안 주면 수평은 위, 수직은 왼쪽, 정렬은 선분 왼편에 자동 배치.
+    하나만 주면(수평 치수에 text_y만 등) 나머지는 두 점의 가운데.
     scale: 치수 전체 축척(DIMSCALE과 같음, 화살표·문자·간격이 함께 커진다). 도면 단위 m에 1/50 출력이면 0.05,
     mm 단위에 1/50이면 50. 0이면 치수 스타일 그대로. text_height는 문자만 따로 정할 때."""
-    tp = [text_x, text_y] if text_x is not None and text_y is not None else None
+    tp = [text_x, text_y] if text_x is not None or text_y is not None else None
     return await _run(ctl.create_dimension, [start_x, start_y], [end_x, end_y], tp, text_height, kind, angle, scale,
                       **_style(layer, color, true_color, linetype, lineweight))
 
@@ -531,6 +532,7 @@ async def create_leader(ctx: Context, points: Union[str, List[List[float]]], tex
                         arrow_size: float = 0.0, style: str = "", layer: str = "", color: int = -1,
                         true_color: str = "", linetype: str = "", lineweight: int = -1) -> str:
     """지시선 + 문자(MLEADER, 철근·재료 표기 등). points: 첫 점이 화살표 끝, 마지막 점 쪽에 문자가 붙는다(2점 이상).
+    마지막 선분이 왼쪽으로 가면 문자는 마지막 점 왼쪽, 아니면 오른쪽에 붙는다.
     text_height는 도면 단위 문자 높이, arrow_size 0이면 문자 높이와 같게. style은 create_text와 같다
     (한글은 korean_capable 스타일). 여러 줄은 \\P."""
     return await _run(ctl.create_leader, points, text, text_height, arrow_size, style,

@@ -96,6 +96,10 @@ if dh and dv:
           ' (write-line (strcat (rtos (vla-get-Measurement o) 2 4) _d (rtos (vla-get-ScaleFactor o) 2 2)) _fp))'
           % (dh["handle"], dv["handle"]))["lines"]
     check("치수 수평 30·축척 2, 수직 7", m == ["30\t2", "7\t1"], m)
+dy = t("create_dimension_text_y_only", c.create_dimension, [0, -40], [30, -40], [None, -46], kind="horizontal")
+if dy:
+    m = S(c.run_lisp, '(write-line (rtos (caddr (assoc 10 (entget (handent "%s")))) 2 2) _fp)' % dy["handle"])["lines"]
+    check("치수 text_y만 줘도 치수선 높이 반영", bool(m) and abs(float(m[0]) + 46) < 1e-6, m)  # rtos는 DIMZIN에 따라 끝 0을 뺀다
 hb = t("create_hatch_boundary", c.create_hatch, None, "ANSI31", 0.5, boundary_handles=[rc["handle"]] if rc else [])
 if hb:
     check("기존 경계 해치(경계 새로 안 만듦)", "boundary_handle" not in hb and hb.get("boundary_handles") == [rc["handle"]], hb)
@@ -103,6 +107,10 @@ t("create_hatch_no_input", c.create_hatch, None, expect_error=True)
 ld = t("create_leader", c.create_leader, [[150, 30], [165, 45], [175, 45]], "주철근 D19@200", 2.5)
 if ld:
     check("지시선 MULTILEADER", ld.get("type") == "MULTILEADER", ld)
+ll = t("create_leader_left", c.create_leader, [[150, 0], [140, 8], [136, 8]], "왼쪽 지시선", 2.5)
+if ll:
+    m = S(c.run_lisp, '(write-line (rtos (cadr (assoc 12 (entget (handent "%s")))) 2 2) _fp)' % ll["handle"])["lines"]
+    check("왼쪽 지시선 문자는 마지막 점 왼쪽", bool(m) and float(m[0]) < 136, m)
 t("create_bad_radius", c.create_circle, [0, 0], 0, expect_error=True)
 t("create_bad_color", c.create_line, [0, 0], [1, 1], color=300, expect_error=True)
 t("create_bad_lt", c.create_line, [0, 0], [1, 1], linetype="NO_SUCH_LT", expect_error=True)

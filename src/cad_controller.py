@@ -1317,6 +1317,12 @@ class AcadControl:
                 nx, ny = -math.sin(a), math.cos(a)
             off = max(length * 0.1, 1.0)
             text_pos = ((s[0] + e[0]) / 2 + nx * off, (s[1] + e[1]) / 2 + ny * off, 0.0)
+        else:
+            # 한 좌표만 주면(수평 치수에 높이 y만 등) 나머지는 두 점의 가운데 — 예전엔 하나만 주면 통째로 무시됐다
+            text_pos = list(text_pos)[:3]
+            for i in (0, 1):
+                if text_pos[i] is None:
+                    text_pos[i] = (s[i] + e[i]) / 2
         t = V.point(list(text_pos)[:3], "text_pos")
         th = V.num(text_height, "text_height")
         sf = V.num(scale, "scale")
@@ -1338,7 +1344,8 @@ class AcadControl:
         return out
 
     def create_leader(self, points, text, text_height=2.5, arrow_size=0.0, text_style="", **style) -> dict:
-        """지시선 + 문자(MLEADER). points 첫 점이 화살표 끝, 마지막 점에 문자가 붙는다."""
+        """지시선 + 문자(MLEADER). points 첫 점이 화살표 끝, 마지막 점에 문자가 붙는다.
+        마지막 선분이 왼쪽으로 가면 문자도 마지막 점의 왼쪽에 붙인다(AddMLeader는 늘 오른쪽에 붙여 선이 글자를 지났다)."""
         if not isinstance(text, str) or text == "":
             raise ValueError("text가 비어 있습니다")
         pts = V.json_points(points, "points", 2)
@@ -1361,6 +1368,9 @@ class AcadControl:
             ent.ArrowheadSize = ar or h
             ent.LandingGap = h * 0.3
             ent.DoglegLength = h
+            if pts[-1][0] < pts[-2][0]:
+                ent.SetDoglegDirection(ent.GetLeaderIndex(0), self._varr([-1.0, 0.0, 0.0]))
+                ent.SetLeaderLineVertices(0, self._varr(flat))  # 꺾임 방향을 바꾼 뒤 문자 위치를 다시 잡게 한다
         out = self._create("지시선", make, style, extra)
         out["content"] = text
         return out
