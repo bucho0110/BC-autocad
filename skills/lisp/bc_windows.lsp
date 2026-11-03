@@ -50,6 +50,9 @@
 (defun c:CALC () (bc:open-window "CALC") (princ))  ; 도면 값 계산기
 (defun c:MPL () (bc:open-window "MPL") (princ))  ; 도곽별 일괄 출력
 (defun c:MPLOT () (bc:fn-MPL))
+(defun c:MPTE () (bc:open-window "MPTE") (princ))  ; 도곽 문자 엑셀로 모으기
+(defun c:EMTT () (bc:open-window "EMTT") (princ))  ; 도곽 문자 엑셀 값으로 일괄 수정
+(defun c:DTC () (bc:open-window "DTC") (princ))  ; 도면 목록표 만들기
 
 ;; BCHELP: 명령 목록 창을 띄우고, 명령줄 기록(F2)에도 목록을 남긴다
 (defun c:BCHELP ()
@@ -158,6 +161,10 @@
   (princ "\n  BCMUIN  여러 도면 원래 좌표로 불러오기 (대화상자)")
   (princ "\n  BCCALC  도면 값 계산기 (대화상자)")
   (princ "\n  BCMPL   도곽별 일괄 출력 (대화상자)")
+  (princ "\n  ── 도곽")
+  (princ "\n  BCMPTE  도곽 문자 엑셀로 모으기 (대화상자)")
+  (princ "\n  BCEMTT  도곽 문자 엑셀 값으로 일괄 수정 (대화상자)")
+  (princ "\n  BCDTC   도면 목록표 만들기 (대화상자)")
   (princ "\n  ※ 명령은 BC를 붙여 입력합니다(FE → BCFE). 단축 이름은 BCHELP 대화상자에서 활성화합니다.")
   (if bc:*short* (progn (princ "\n  ※ 활성화된 단축 이름:") (foreach _k bc:*short* (princ (strcat " " _k))) (princ "  (모두 켜기: BCON, 모두 해제: BCOFF)")))
   (princ))

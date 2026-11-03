@@ -93,6 +93,12 @@ RUN_SPECS = {
     "DRRE": "mode 'template'(handle, reverse → 양식 행) 또는 'draw'(rows [[누가거리, 구분, R, 경사, 길이(높이), 밑다짐폭, 중심~호안머리]], origin [x,y]) → 구간·면적",
     "CSAR": "pick {centers [[x, y아래]], win [dx0,dy0,dx1,dy1], frame_handle, frame [insx,insy,minx,miny,maxx,maxy], area [ax0,ay0,ax1,ay1](도곽 삽입점 기준), extra [핸들], base [x,y]}",
     **mcp_more.RUN_SPECS,
+    "MPTE": "files [경로…](선택, 없으면 지금 도면 — 다른 파일은 화면 없이 열어 읽음), registration(선택, 없으면 저장된 등록: "
+            "{blocks: {도곽 블록 이름: {items: [{name, kind 'box'(영역 문자)|'attr'(도곽 속성)|'abox'(영역 속성 블록), "
+            "box [x0,y0,x1,y1](도곽 삽입점·축척·회전 기준 좌표), tag}]}}}), save_registration(선택) → rows(첫 줄 머리, 경로·도곽핸들 열), frames",
+    "EMTT": "rows(MPTE rows에서 값만 고친 표 — 경로·도곽핸들 열 필요), registration(선택) → changed, files, skipped "
+            "[[경로, 도곽핸들, 항목, 이유]]. 다른 파일은 저장까지 함(원본은 <이름>.bak, AutoCAD에 열린 다른 도면은 건너뜀)",
+    "DTC": "files(선택), registration(선택), settings.번호항목·제목항목·기타항목(등록 항목 이름), insert_point [x,y](선택: 지금 도면에 표) → rows",
     "DDGP": "rows(첫 행은 반드시 한글 머리글 — 열을 이름으로 찾는다: 측점·하상고·좌/우 계획고·하폭·제방폭·제내지경사·제외지경사·호안경사·HWL·SWL·여유고), sample_handles(선택, DCEM과 같음), dry_run(선택)",
 }
 
@@ -525,6 +531,9 @@ def run(ctl, cmd: str, a: dict, budget: float = 120.0) -> dict:
 
     if cmd in mcp_more.CMDS:
         return mcp_more.run(ctl, doc, lib, cmd, a, t1, merged_cfg, lq, lambda code: _draw(ctl, doc, lib, code, t1), _need)
+    if cmd in ("MPTE", "EMTT", "DTC"):
+        from skills.windows import mpte
+        return mpte.run_mcp(ctl, doc, lib, cmd, a, t1, merged_cfg)
     if cmd == "MUIN":
         from skills.windows import muin
         return muin.run_mcp(ctl, doc, lib, a, t1)

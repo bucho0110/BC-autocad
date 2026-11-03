@@ -57,7 +57,7 @@ INSTRUCTIONS = """AutoCAD 제어 MCP(한글판). AutoCAD의 '활성 도면'에 �
 
 작업 전 필수:
 1. 그리기나 토목 작업을 시작하기 전에 guide를 한 번 부른다(작도·명령·조회 요령).
-2. 있는 것부터 쓴다 — 토목 명령 91개(skill_list)와 create_* 작도 도구. run_lisp로 직접 그리는 것은 마지막 수단.
+2. 있는 것부터 쓴다 — 토목 명령 94개(skill_list)와 create_* 작도 도구. run_lisp로 직접 그리는 것은 마지막 수단.
 3. 한글 문자를 쓰기 전에 한글 글꼴 스타일을 준비한다(아래 '한글').
 
 - 좌표는 도면 단위, 각도는 도(degree), 색은 ACI(0~256) 또는 true_color "R,G,B".
@@ -80,7 +80,7 @@ INSTRUCTIONS = """AutoCAD 제어 MCP(한글판). AutoCAD의 '활성 도면'에 �
   이미 그린 닫힌 경계의 해치는 create_hatch(boundary_handles=[...]). 같은 것을 run_lisp로 흉내 내지 않는다.
 - "백그라운드로", "화면 건드리지 말고 파일로" 같은 요청이나 큰 그림·새 도면 만들기는 build_drawing_background
   (화면 없는 AutoCAD로 새 DWG를 만든다. 사용자의 AutoCAD 화면은 건드리지 않는다).
-- 스킬 명령 91개(EL·지형·종단·횡단·좌표·선형·측점·제방·사면·하천 횡단·수량·표·정리·수정·레이어·도면 불러오기·계산기·다중 플롯, 예: FE·CCON·GRP·DRP·QCAR·RET·XY·DSTA·HWLM·LOL·CALC): skill_list로 목록,
+- 스킬 명령 94개(EL·지형·종단·횡단·좌표·선형·측점·제방·사면·하천 횡단·수량·표·정리·수정·레이어·도면 불러오기·계산기·다중 플롯·도곽 문자 엑셀, 예: FE·CCON·GRP·DRP·QCAR·RET·XY·DSTA·HWLM·LOL·CALC): skill_list로 목록,
   사람에게는 skill_open(창)이 기본, 값이 정해진 일은 skill_run. AutoCAD에서는 BCFE처럼 BC를 붙인 이름(BCHELP에서 체크한 명령만 FE 같은 짧은 이름도).
   · skill_run 전에 skill_list(command=명령)로 settings 키 이름을 확인한다(명령마다 이름·의미가 다르다).
   · skill_run은 엑셀 없이 JSON으로 한다(rows로 넣고 table·rows로 받는다). 설명의 '엑셀'은 창에서 쓸 때 이야기다.
@@ -156,7 +156,7 @@ GUIDE = {
 5. 확인: zoom_extents 후 capture_view로 화면을 보고 글자 크기·겹침(find_text_overlaps)을 고친다.
 run_lisp는 위 도구로 안 되는 계산·조회·일괄 편집에만 쓴다.""",
     "명령": """[토목 명령(스킬) 쓰기]
-1. skill_list()로 91개 목록(command·title·desc), 쓸 명령은 skill_list(command="DRP")로 settings 키를 확인.
+1. skill_list()로 94개 목록(command·title·desc), 쓸 명령은 skill_list(command="DRP")로 settings 키를 확인.
 2. 값이 정해진 일은 skill_run(command, settings, rows), 사람이 고를 일은 skill_open(창).
 3. 좌표 명령(XY·CEX·CIM·ZBC·WCD)은 기본이 토목 좌표(X=북, Y=동) — CAD 순서로 쓰려면 settings {"좌표": "수학"}.
 4. 경사는 '1:1.5'·'2%' 같은 글자로 준다. 문자 높이 기준은 명령마다 다르다(settings의 label 참고).""",
@@ -171,7 +171,7 @@ run_lisp는 위 도구로 안 되는 계산·조회·일괄 편집에만 쓴다.
 @mcp.tool(structured_output=False)
 async def guide(ctx: Context, topic: str = "작도") -> str:
     """작업 요령 안내. 그리기(작도)나 토목 명령을 쓰기 전에 먼저 한 번 부른다 — 있는 전용 도구로 빨리 끝내기 위해서다.
-    topic: "작도"(단면도 등 새로 그리기, 기본)·"명령"(토목 명령 91개 쓰기)·"조회"(도면 읽기)·"전체"."""
+    topic: "작도"(단면도 등 새로 그리기, 기본)·"명령"(토목 명령 94개 쓰기)·"조회"(도면 읽기)·"전체"."""
     t = (topic or "작도").strip()
     if t == "전체":
         return "\n\n".join(GUIDE.values())
@@ -808,7 +808,7 @@ def _skills():
 
 @mcp.tool(structured_output=False)
 async def skill_list(ctx: Context, command: str = "") -> str:
-    """AutoCAD 스킬 명령 91개 목록(EL·지형·종단·횡단·좌표·선형·측점·사면·하천 횡단·수량·표·정리·수정·레이어·도면 불러오기·계산기·다중 플롯).
+    """AutoCAD 스킬 명령 94개 목록(EL·지형·종단·횡단·좌표·선형·측점·사면·하천 횡단·수량·표·정리·수정·레이어·도면 불러오기·계산기·다중 플롯·도곽 문자 엑셀).
     command를 비우면 전체 요약: command, title, group, kind(lisp=AutoCAD에서 바로 찍는 명령 / window=창), desc, run_args.
     command를 주면 그 명령 하나를 자세히: settings(skill_run의 settings에 넣을 수 있는 키·기본값·선택지), settings_file.
     skill_run 전에 그 명령을 command로 한 번 불러 설정 키 이름을 확인한다(명령마다 '간격'·'측점간격'처럼 다르다).
