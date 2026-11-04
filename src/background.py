@@ -5,7 +5,7 @@
 - LISP 본문을 UTF-8 한 줄 파일로 써 두고, 스크립트(.scr)는 그 파일을 읽어 eval만 한다(한글 그대로).
 - 백그라운드에는 객체 스냅·대화창이 없어 (command ...)도 쓸 수 있다(OSMODE 0으로 시작).
 - 토목 명령 함수(skills/lisp)를 먼저 불러 둘 수 있다(use_skills).
-- 끝나면 DWG(2018 형식)로 저장하고, 결과 파일의 마지막 줄 DONE으로 끝까지 돌았는지 확인한다.
+- 끝나면 DWG(기본 2018 형식, save_as로 바꿈)로 저장하고, 결과 파일의 마지막 줄 DONE으로 끝까지 돌았는지 확인한다.
 실측(AutoCAD 2023): 새 도면 작도·저장 약 2.4초, 한글 파일 이름·문자 정상, 스크립트가 끝나면 스스로 종료.
 """
 
@@ -72,13 +72,96 @@ def _plot_lisp(png: str) -> str:
             ' (write-line (strcat "BC_BG_PNG" (chr 9) (if (findfile "%s") "1" "0")) _fp)') % (p, p)
 
 
+# DWG 파일 앞 6바이트(형식 표시) → SAVEAS 형식 이름
+DWG_FORMATS = {b"AC1032": "2018", b"AC1027": "2013", b"AC1024": "2010", b"AC1021": "2007", b"AC1018": "2004",
+               b"AC1015": "2000"}
+
+
+def dwg_format(path: str) -> str:
+    """도면 파일의 저장 형식(예 '2013'). 읽지 못하거나 모르는 형식이면 '2018'."""
+    try:
+        with open(path, "rb") as f:
+            return DWG_FORMATS.get(f.read(6), "2018")
+    except OSError:
+        return "2018"
+
+
+def _lib_expr(use_skills: bool) -> str:
+    return ('(progn (setq _bcl (open "%s" "r" "utf8") _bcs (read-line _bcl)) (close _bcl) (eval (read _bcs)) '
+            '(setq _bcl nil _bcs nil))' % _slash(_skills_lib())) if use_skills else ""
+
+
+def _head(work: str) -> str:
+    """결과 파일 열기·오류 처리기 — 본문 앞에 붙인다(본문은 DONE을 쓰고 파일을 닫고 끝낸다)."""
+    return ('(progn (setq _fp (open "%s" "w" "utf8") _d (chr 9))'
+            ' (defun *error* (msg) (write-line (strcat "LISPERROR" (chr 9) (if (= (type msg) (quote STR)) msg "")) _fp)'
+            '  (write-line "%s" _fp) (close _fp) (princ))'
+            ' (setvar "OSMODE" 0) (setvar "CMDECHO" 0) ') % (_slash(os.path.join(work, "result.txt")), DONE)
+
+
+def _console(body: str, base: str, timeout_s: float, work: str) -> list:
+    """body를 화면 없는 AutoCAD로 돌려 결과 줄(마지막 DONE 포함)을 돌려준다."""
+    acc = find_console()
+    src = os.path.join(work, "code.lsp.txt")
+    with open(src, "w", encoding="utf-8") as f:
+        f.write(V.one_line(body))
+    scr = os.path.join(work, "run.scr")
+    with open(scr, "w", encoding="ascii") as f:
+        f.write('(progn (setq _in (open "%s" "r" "utf8") _s (read-line _in)) (close _in) (eval (read _s)) (princ))\n'
+                % _slash(src))
+    args = [acc] + (["/i", base] if base else []) + ["/s", scr]
+    if os.path.isdir(os.path.join(os.path.dirname(acc), "ko-KR")):
+        args += ["/l", "ko-KR"]
+    try:
+        # MCP 서버(stdio)에서 부르면 TEMP·TMP가 빠진 환경일 수 있다 — 그러면 콘솔이 드라이브 맨 위에 임시 파일을
+        # 만들려다 "Can't redirect stdout (errno=13)"로 멈춘다(실측). 작업 폴더를 임시 폴더로 넘기고 입력은 막는다.
+        env = dict(os.environ, TEMP=work, TMP=work)
+        proc = subprocess.run(args, capture_output=True, stdin=subprocess.DEVNULL, timeout=timeout_s, cwd=work,
+                              env=env, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    except subprocess.TimeoutExpired:
+        raise TimeoutError("백그라운드 작업이 %d초 안에 끝나지 않아 중단했습니다." % timeout_s)
+    res = os.path.join(work, "result.txt")
+    lines = []
+    if os.path.exists(res):
+        with open(res, "r", encoding="utf-8-sig", errors="replace") as f:
+            lines = [ln.rstrip("\r\n") for ln in f if ln.strip()]
+    tail = proc.stdout.decode("utf-16-le", errors="replace")[-800:].strip()
+    err = [ln.split("\t", 1)[-1] for ln in lines if ln.startswith("LISPERROR")]
+    if err:
+        raise RuntimeError("LISP 오류: %s (저장하지 않았습니다)" % err[0])
+    if not lines or lines[-1] != DONE:
+        raise RuntimeError("백그라운드 작업이 끝까지 돌지 않았습니다(종료 코드 %s). 화면 없는 AutoCAD 출력 끝부분:\n%s"
+                           % (proc.returncode, tail))
+    return lines
+
+
+def query(code: str, base_drawing: str, use_skills: bool = True, timeout_s: float = 300.0) -> list:
+    """base_drawing을 화면 없는 AutoCAD로 열어 code(LISP)를 돌리고 결과 줄만 돌려준다.
+    저장하지 않는다(읽기 전용) — code가 도면을 바꿔도 파일에는 남지 않는다."""
+    V.check_parens(code)
+    base = os.path.abspath(base_drawing)
+    if not os.path.isfile(base):
+        raise FileNotFoundError("도면이 없습니다: %s" % base_drawing)
+    if timeout_s <= 0 or timeout_s > 3600:
+        raise ValueError("timeout_s는 1~3600초입니다.")
+    work = tempfile.mkdtemp(prefix="bc_bq_")
+    try:
+        body = _head(work) + '%s\n%s\n (write-line "%s" _fp) (close _fp) (princ))' % (_lib_expr(use_skills), code, DONE)
+        return _console(body, base, timeout_s, work)[:-1]
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def build(code: str, output_path: str, base_drawing: str = "", overwrite: bool = False, use_skills: bool = True,
-          timeout_s: float = 300.0, preview: bool = True) -> dict:
+          timeout_s: float = 300.0, preview: bool = True, save_as: str = "2018") -> dict:
     """code(LISP)를 화면 없는 AutoCAD에서 실행하고 output_path(.dwg)로 저장한다.
     base_drawing을 주면 그 도면을 열어 시작한다(원본은 그대로, 결과는 output_path에만 저장).
     결과는 code가 (write-line "..." _fp)로 쓴 줄을 lines로 돌려준다.
-    preview면 저장한 뒤 모형 공간 전체를 PNG로 출력해 preview(임시 폴더 경로)로 돌려준다 — 화면 없이 결과를 눈으로 확인할 때."""
+    preview면 저장한 뒤 모형 공간 전체를 PNG로 출력해 preview(임시 폴더 경로)로 돌려준다 — 화면 없이 결과를 눈으로 확인할 때.
+    save_as는 저장 형식(2018·2013·2010·2007·2004·2000) — 원본 형식을 지키려면 dwg_format(원본)을 넘긴다."""
     V.check_parens(code)
+    if save_as not in DWG_FORMATS.values():
+        raise ValueError("save_as는 %s 중 하나입니다." % "·".join(DWG_FORMATS.values()))
     out = os.path.abspath(output_path)
     if not out.lower().endswith(".dwg"):
         raise ValueError("output_path는 .dwg 파일이어야 합니다: %s" % output_path)
@@ -96,66 +179,31 @@ def build(code: str, output_path: str, base_drawing: str = "", overwrite: bool =
     if timeout_s <= 0 or timeout_s > 3600:
         raise ValueError("timeout_s는 1~3600초입니다.")
 
-    acc = find_console()
     work = tempfile.mkdtemp(prefix="bc_bg_")
     try:
-        res = os.path.join(work, "result.txt")
-        lib = ('(progn (setq _bcl (open "%s" "r" "utf8") _bcs (read-line _bcl)) (close _bcl) (eval (read _bcs)) '
-               '(setq _bcl nil _bcs nil))' % _slash(_skills_lib())) if use_skills else ""
         png = ""
         if preview:
             os.makedirs(PREVIEW_DIR, exist_ok=True)
             png = os.path.join(PREVIEW_DIR, "%s_%s.png" % (os.path.splitext(os.path.basename(out))[0],
                                                            time.strftime("%Y%m%d_%H%M%S")))
-        body = (
-            '(progn (setq _fp (open "%s" "w" "utf8") _d (chr 9))'
-            ' (defun *error* (msg) (write-line (strcat "LISPERROR" (chr 9) (if (= (type msg) (quote STR)) msg "")) _fp)'
-            '  (write-line "%s" _fp) (close _fp) (princ))'
-            ' (setvar "OSMODE" 0) (setvar "CMDECHO" 0) %s\n%s\n'
+        body = _head(work) + (
+            '%s\n%s\n'
             ' (setq _bccount (if (setq _bcss (ssget "_X")) (sslength _bcss) 0))'
             ' (write-line (strcat "BC_BG_COUNT" (chr 9) (itoa _bccount)) _fp)'
-            ' (command "_.SAVEAS" "2018" "%s")'
+            ' (command "_.SAVEAS" "%s" "%s")'
             ' (write-line (strcat "BC_BG_SAVED" (chr 9) (if (findfile "%s") "1" "0")) _fp)'
             ' %s'
             ' (write-line "%s" _fp) (close _fp) (princ))'
-        ) % (_slash(res), DONE, lib, code, _slash(out), _slash(out), _plot_lisp(png) if png else "", DONE)
-        src = os.path.join(work, "code.lsp.txt")
-        with open(src, "w", encoding="utf-8") as f:
-            f.write(V.one_line(body))
-        scr = os.path.join(work, "run.scr")
-        with open(scr, "w", encoding="ascii") as f:
-            f.write('(progn (setq _in (open "%s" "r" "utf8") _s (read-line _in)) (close _in) (eval (read _s)) (princ))\n'
-                    % _slash(src))
-        args = [acc] + (["/i", base] if base else []) + ["/s", scr]
-        if os.path.isdir(os.path.join(os.path.dirname(acc), "ko-KR")):
-            args += ["/l", "ko-KR"]
+        ) % (_lib_expr(use_skills), code, save_as, _slash(out), _slash(out), _plot_lisp(png) if png else "", DONE)
         t0 = time.time()
-        try:
-            # MCP 서버(stdio)에서 부르면 TEMP·TMP가 빠진 환경일 수 있다 — 그러면 콘솔이 드라이브 맨 위에 임시 파일을
-            # 만들려다 "Can't redirect stdout (errno=13)"로 멈춘다(실측). 작업 폴더를 임시 폴더로 넘기고 입력은 막는다.
-            env = dict(os.environ, TEMP=work, TMP=work)
-            proc = subprocess.run(args, capture_output=True, stdin=subprocess.DEVNULL, timeout=timeout_s, cwd=work,
-                                  env=env, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        except subprocess.TimeoutExpired:
-            raise TimeoutError("백그라운드 작업이 %d초 안에 끝나지 않아 중단했습니다." % timeout_s)
+        lines = _console(body, base, timeout_s, work)
         sec = round(time.time() - t0, 1)
-        lines = []
-        if os.path.exists(res):
-            with open(res, "r", encoding="utf-8-sig", errors="replace") as f:
-                lines = [ln.rstrip("\r\n") for ln in f if ln.strip()]
-        tail = proc.stdout.decode("utf-16-le", errors="replace")[-800:].strip()
-        err = [ln.split("\t", 1)[-1] for ln in lines if ln.startswith("LISPERROR")]
-        if err:
-            raise RuntimeError("LISP 오류: %s (저장하지 않았습니다)" % err[0])
-        if not lines or lines[-1] != DONE:
-            raise RuntimeError("백그라운드 작업이 끝까지 돌지 않았습니다(종료 코드 %s). 화면 없는 AutoCAD 출력 끝부분:\n%s"
-                               % (proc.returncode, tail))
         info = dict(ln.split("\t", 1) for ln in lines if ln.startswith("BC_BG_") and "\t" in ln)
         if info.get("BC_BG_SAVED") != "1" or not os.path.isfile(out):
             raise RuntimeError("도면을 저장하지 못했습니다: %s" % out)
         user = [ln for ln in lines[:-1] if not ln.startswith("BC_BG_")]
         result = {"output": out, "entities": int(info.get("BC_BG_COUNT", "0")), "seconds": sec,
-                  "bytes": os.path.getsize(out), "lines": user, "console": os.path.basename(os.path.dirname(acc))}
+                  "bytes": os.path.getsize(out), "lines": user, "console": os.path.basename(os.path.dirname(find_console()))}
         if preview:
             ok = info.get("BC_BG_PNG") == "1" and os.path.isfile(png)
             result["preview"] = png if ok else None

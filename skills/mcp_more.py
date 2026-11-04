@@ -202,7 +202,9 @@ def run(ctl, doc, lib, cmd, a, t1, merged_cfg, lq, draw, need):
         else:
             code, W, H = mod.draw_lisp(rows, a["insert_point"], dict(cfg, 크기="문자 길이에 맞춤"), merges)
         draw(code)
-        return dict(res, width=round(W, 4), height=round(H, 4))
+        from skills.common import cadtable as TB
+        warn = TB.font_warning(L, rows)
+        return dict(res, width=round(W, 4), height=round(H, 4), **({"warning": warn} if warn else {}))
     if cmd == "DDE":
         ty = mod.types_of(cfg)
         body = _sel(lq, a["handles"]) if a.get("handles") else _all(lq, ",".join(ty))

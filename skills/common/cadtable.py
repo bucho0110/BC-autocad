@@ -13,6 +13,33 @@ from validators import lisp_str as ls  # src: LISP 문자열 이스케이프(역
 _NUM = re.compile(r"^[-+]?[\d,]*\.?\d+(\s*\S{0,3})?$")
 
 
+_HANGUL = re.compile("[ᄀ-ᇿ㄰-㆏가-힣]")
+# 지금 문자 스타일의 글꼴 파일·큰 글꼴 파일 — 표 문자는 지금 문자 스타일로 그린다
+FONT_LISP = ('(setq _st (tblsearch "STYLE" (getvar "TEXTSTYLE")))'
+             ' (write-line (strcat (getvar "TEXTSTYLE") _d (cond ((cdr (assoc 3 _st))) ("")) _d'
+             ' (cond ((cdr (assoc 4 _st))) (""))) _fp)')
+
+
+def korean_font(font_file, bigfont_file):
+    """한글이 화면에 보이는 글꼴인가 — 큰 글꼴(한글 .shx)이 있거나 트루타입 글꼴(이름만 있는 경우 포함)."""
+    f = (font_file or "").strip().lower()
+    return bool((bigfont_file or "").strip()) or f == "" or f.endswith((".ttf", ".ttc", ".otf"))
+
+
+def font_warning(lisp, rows):
+    """rows에 한글이 있는데 지금 문자 스타일에 한글 글꼴이 없으면 경고 문구, 아니면 ''. lisp(code) → 결과 줄."""
+    if not any(_HANGUL.search(str(v)) for r in rows for v in r):
+        return ""
+    try:
+        name, font, big = (lisp(FONT_LISP)[0].split("\t") + ["", "", ""])[:3]
+    except Exception:  # noqa: BLE001 — 경고용 확인이므로 못 읽으면 경고 없이 넘어간다(표는 이미 그렸다)
+        return ""
+    if korean_font(font, big):
+        return ""
+    return ("지금 문자 스타일 '%s'(%s)에 한글 글꼴이 없어 표의 한글이 ?로 보일 수 있습니다. "
+            "한글 글꼴이 있는 문자 스타일로 바꾸세요." % (name, font or "글꼴 없음"))
+
+
 def default_align(_r, _c, v):
     return "R" if _NUM.match(str(v).strip()) else "C"
 

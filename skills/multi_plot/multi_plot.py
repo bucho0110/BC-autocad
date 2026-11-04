@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """
-CAD Multi Plotter (다중 플롯 유틸리티) - BC.0.6.0 (MCP 패키지 버전과 같게)
+CAD Multi Plotter (다중 플롯 유틸리티) - BC.0.6.1 (MCP 패키지 버전과 같게)
 =========================================================
 오토캐드(AutoCAD) 및 호환 CAD에서 모형(Model) 공간의 다중 도곽(블록·사각 폴리라인·수동 영역)을
 자동 인식·정렬하여 일괄 PDF 변환 또는 프린터로 다중 출력하는 독립 GUI 도구입니다.
 """
 
 import ctypes
-ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("BC.CAD_Multi_Plotter.0.5.0")
 
 import os
 import sys
@@ -33,6 +32,10 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 from skills.common import paths as _paths  # noqa: E402
 from skills.common.icon_b64 import ICON_B64  # noqa: E402
+from skills.common.ui import VERSION_NUM  # noqa: E402
+
+# 작업표시줄 아이콘용 앱 ID — 창을 만들기 전에, 끝자리는 패키지 버전(버전이 바뀌면 새 아이콘으로 잡힌다)
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("BC.CAD_Multi_Plotter." + VERSION_NUM)
 import lisp_runner  # noqa: E402  (src: 파일 eval 실행기 — (load) 없음, 멈추면 ESC 복구)
 from validators import lisp_str as _ls  # noqa: E402  (LISP 문자열 이스케이프: 인치 " · 네트워크 프린터 \\)
 
@@ -972,6 +975,12 @@ class CADMultiPlotterApp(tk.Tk):
                 ctypes.windll.user32.SendMessageW(hwnd, 0x0080, 1, hLarge)
         except Exception as e:
             logging.warning(f"아이콘 로드 예외: {e}")
+        finally:
+            # 아이콘은 불러온 뒤에는 파일이 필요 없다 — 임시 폴더에 남기지 않는다
+            try:
+                os.remove(self.icon_path)
+            except (AttributeError, OSError):
+                pass
 
         self.bridge = AutoCADPlotBridge()
         self.pc3_list, self.ctb_list = scan_autocad_plot_resources()

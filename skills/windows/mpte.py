@@ -14,8 +14,6 @@ import json
 import math
 import os
 import re
-import shutil
-import tempfile
 import tkinter as tk
 from tkinter import filedialog, simpledialog
 
@@ -77,10 +75,19 @@ def item_names(reg):
 
 
 # ---------------------------------------------------------------- 도면 읽기
-# 화면 없는 AutoCAD에서도 돌도록 ActiveX 없이 쓴다(블록 실제 이름만 ActiveX가 있을 때 읽는다 — 동적 블록).
+# 화면 없는 AutoCAD에서도 돌도록 ActiveX 없이 쓴다. 동적 블록(이름 *U…)의 원래 이름은 ActiveX가 있으면 그것으로,
+# 없으면(화면 없는 AutoCAD) 블록 레코드의 확장 데이터 AcDbBlockRepBTag가 가리키는 원래 블록 레코드에서 읽는다.
 HELPERS = (
-    '(defun bc:tb-name (e / r) (setq r (vl-catch-all-apply (quote (lambda () (vla-get-EffectiveName'
-    ' (vlax-ename->vla-object e)))))) (if (= (type r) (quote STR)) r (cdr (assoc 2 (entget e)))))'
+    '(defun bc:tb-name (e / n r x) (setq n (cdr (assoc 2 (entget e))))'
+    ' (if (wcmatch n "`**")'
+    '  (progn (setq r (vl-catch-all-apply (quote (lambda () (vla-get-EffectiveName (vlax-ename->vla-object e))))))'
+    '   (cond ((= (type r) (quote STR)) r)'
+    '    ((and (setq x (tblobjname "BLOCK" n)) (setq x (cdr (assoc 330 (entget x))))'
+    '      (setq x (cdadr (assoc -3 (entget x (quote ("AcDbBlockRepBTag"))))))'
+    '      (setq x (cdr (assoc 1005 x))) (setq x (handent x)))'
+    '     (cdr (assoc 2 (entget x))))'
+    '    (n)))'
+    '  n))'
     '(defun bc:tb-rot (p dx dy a) (list (+ (car p) (- (* dx (cos a)) (* dy (sin a))))'
     ' (+ (cadr p) (+ (* dx (sin a)) (* dy (cos a)))) (if (caddr p) (caddr p) 0.0)))'
     '(defun bc:tb-ctr (e / ed tb p a w h c r)'
@@ -208,36 +215,30 @@ def sort_frames(items, how):
     return [i for line in out for i in sorted(line, key=lambda i: i["x"])]
 
 
-def gather(files, reg, cfg, live=None, live_path="", work=None, log=None):
+def gather(files, reg, cfg, live=None, live_path="", log=None):
     """files의 도곽을 읽는다. → [(파일 경로, 도곽 목록)]. CURRENT 또는 live_path와 같은 파일은 live(code)로
-    지금 도면에서 읽고(저장 안 한 내용까지), 나머지는 화면 없는 AutoCAD로 연다(파일 하나에 몇 초)."""
+    지금 도면에서 읽고(저장 안 한 내용까지), 나머지는 화면 없는 AutoCAD로 열어 읽기만 한다(저장 안 함, 파일 하나에 몇 초).
+    다른 파일만 읽을 때는 live가 없어도 된다(AutoCAD 화면이 꺼져 있어도 된다)."""
     import background  # src
     names = [n for n in reg["blocks"]]
     code = dump_lisp(names)
     out = []
-    own = work is None
-    work = work or tempfile.mkdtemp(prefix="bc_mpte_")
-    try:
-        for i, f in enumerate(files):
-            is_live = f == CURRENT or (live_path and os.path.normcase(os.path.abspath(f)) == os.path.normcase(live_path))
-            if log:
-                log("읽는 중 %d/%d: %s" % (i + 1, len(files), os.path.basename(live_path) if f == CURRENT else f))
-            if is_live:
-                if live is None:
-                    raise ValueError("지금 도면을 읽을 수 없습니다.")
-                rows = live(code)
-                path = live_path or CURRENT
-            else:
-                if not os.path.isfile(f):
-                    raise FileNotFoundError("파일이 없습니다: %s" % f)
-                rows = background.build(code, os.path.join(work, "read_%d.dwg" % i), base_drawing=f,
-                                        preview=False)["lines"]
-                path = os.path.abspath(f)
-            out.append((path, collect(*parse(rows), reg, cfg)))
-        return out
-    finally:
-        if own:
-            shutil.rmtree(work, ignore_errors=True)
+    for i, f in enumerate(files):
+        is_live = f == CURRENT or (live_path and os.path.normcase(os.path.abspath(f)) == os.path.normcase(live_path))
+        if log:
+            log("읽는 중 %d/%d: %s" % (i + 1, len(files), os.path.basename(live_path) if f == CURRENT else f))
+        if is_live:
+            if live is None:
+                raise ValueError("지금 도면을 읽을 수 없습니다(AutoCAD에 열린 도면이 없습니다).")
+            rows = live(code)
+            path = live_path or CURRENT
+        else:
+            if not os.path.isfile(f):
+                raise FileNotFoundError("파일이 없습니다: %s" % f)
+            rows = background.query(code, f)
+            path = os.path.abspath(f)
+        out.append((path, collect(*parse(rows), reg, cfg)))
+    return out
 
 
 _NUM = re.compile(r"^-?\d+(\.\d+)?$")
@@ -285,16 +286,41 @@ def cell_str(v):
 
 
 # ---------------------------------------------------------------- MCP
-def run_mcp(ctl, doc, lib, cmd, a, timeout_s, merged_cfg):
-    """skill_run MPTE·EMTT·DTC 공통 입구."""
+def live_doc(get_doc, need):
+    """지금 도면. need가 아니면(다른 파일만 다룰 때) AutoCAD가 꺼져 있거나 열린 도면이 없어도 None으로 넘어간다."""
+    try:
+        return get_doc()
+    except Exception:  # noqa: BLE001 — 지금 도면이 꼭 필요할 때만 오류
+        if need:
+            raise
+        return None
+
+
+def needs_live(cmd, a, files):
+    """지금 도면이 꼭 필요한가 — 읽을 목록에 지금 도면이 있거나, 표를 도면에 그리거나, EMTT 표에 지금 도면 줄이 있을 때."""
+    if cmd == "EMTT":  # EMTT는 files가 아니라 표의 경로 열로 도면을 찾는다
+        return any(CURRENT in [cell_str(c) for c in r] for r in (a.get("rows") or [])[1:])
+    return CURRENT in files or bool(cmd == "DTC" and a.get("insert_point"))
+
+
+def run_mcp(ctl, cmd, a, timeout_s, merged_cfg):
+    """skill_run MPTE·EMTT·DTC 공통 입구. 다른 파일만 다룰 때는 AutoCAD 화면이 꺼져 있어도 된다."""
     reg = check_reg(a["registration"]) if a.get("registration") else load_reg()
     if a.get("registration") and a.get("save_registration"):
         save_reg(reg)
     if not reg["blocks"]:
         raise ValueError("%s: 도곽 등록이 없습니다. registration을 주거나 MPTE 창에서 도곽을 먼저 등록하세요." % cmd)
-    live_path = doc.FullName or ""
-    live = lambda code: ctl.lisp(lib + code, doc=doc, timeout_s=timeout_s)  # noqa: E731
     files = a.get("files") or [CURRENT]
+    doc = live_doc(lambda: ctl.doc, needs_live(cmd, a, files))
+    if doc is not None:
+        from skills.common import lisplib
+        doc = ctl._require_idle(doc)  # 사람이 AutoCAD에서 명령 중이면 다른 도구처럼 거절한다
+        lib = lisplib.ensure_expr()
+        live_path = doc.FullName or ""
+        live = lambda code: ctl.lisp(lib + code, doc=doc, timeout_s=timeout_s)  # noqa: E731
+        drawing = doc.Name
+    else:
+        lib, live_path, live, drawing = "", "", None, "(AutoCAD 화면 없음)"
     if cmd == "EMTT":
         from skills.windows import emtt
         if not a.get("rows"):
@@ -304,25 +330,30 @@ def run_mcp(ctl, doc, lib, cmd, a, timeout_s, merged_cfg):
         def live_edit(code):
             with ctl._undo_group(doc):
                 return ctl.lisp(lib + code, doc=doc, timeout_s=timeout_s)
-        return dict({"drawing": doc.Name}, **emtt.apply(a["rows"], reg, cfg, live, live_edit, live_path, open_paths(doc)))
+        return dict({"drawing": drawing}, **emtt.apply(a["rows"], reg, cfg, live, live_edit, live_path, open_paths(doc)))
     if cmd == "DTC":
         from skills.windows import dtc
         cfg = merged_cfg("DTC", dtc.DEFAULTS, a.get("settings"))
         rows = dtc.to_rows(gather(files, reg, dict(DEFAULTS, 공간=cfg["공간"], 정렬="위→아래"), live, live_path), cfg)
-        res = {"drawing": doc.Name, "rows": rows}
+        res = {"drawing": drawing, "rows": rows}
         if a.get("insert_point"):
             with ctl._undo_group(doc):
                 ctl.lisp(lib + dtc.draw_lisp(rows, a["insert_point"], cfg)[0], doc=doc, timeout_s=timeout_s)
             res["drawn"] = True
+            warn = dtc.font_warning(lambda code: ctl.lisp(lib + code, doc=doc, timeout_s=timeout_s), rows)
+            if warn:
+                res["warning"] = warn
         return res
     cfg = merged_cfg(CMD, DEFAULTS, a.get("settings"))
     read = gather(files, reg, cfg, live, live_path)
-    return {"drawing": doc.Name, "rows": to_rows(read, reg, cfg), "frames": sum(len(i) for _p, i in read)}
+    return {"drawing": drawing, "rows": to_rows(read, reg, cfg), "frames": sum(len(i) for _p, i in read)}
 
 
 def open_paths(doc):
-    """AutoCAD에 열려 있는 도면 경로(정규화) — 열린 파일은 뒤에서 덮어쓰지 않는다."""
+    """AutoCAD에 열려 있는 도면 경로(정규화) — 열린 파일은 뒤에서 덮어쓰지 않는다. doc이 없으면(화면 없음) 빈 목록."""
     out = set()
+    if doc is None:
+        return out
     try:
         docs = doc.Application.Documents
         for i in range(docs.Count):
@@ -501,9 +532,9 @@ class Window(ui.BaseWindow):
             self.error("읽을 도면을 추가하세요.")
             return None
         try:
-            doc = self.acad.doc
-            return gather(self.files, self.reg, cfg, lambda code: self.acad.lisp(code, 600), doc.FullName or "",
-                          log=lambda m: (self.status(m), self.update()))
+            doc = live_doc(lambda: self.acad.doc, CURRENT in self.files)  # 다른 파일만 읽으면 AutoCAD 화면이 없어도 된다
+            return gather(self.files, self.reg, cfg, (lambda code: self.acad.lisp(code, 600)) if doc else None,
+                          (doc.FullName or "") if doc else "", log=lambda m: (self.status(m), self.update()))
         except Exception as e:  # noqa: BLE001 — 사람이 볼 창이므로 원문을 보인다
             self.error("%s: %s" % (type(e).__name__, e))
             return None

@@ -68,6 +68,9 @@ def draw_lisp(rows, origin, cfg):
     return TB.table_lisp(rows, origin, widths, 2.2 * h, h, cfg["문자레이어"], cfg["선레이어"])
 
 
+font_warning = TB.font_warning  # 표는 지금 문자 스타일로 그린다 — 한글 글꼴이 없으면 알린다
+
+
 class Window(M.Window):
     CMD, TITLE, FIELDS_, DEFAULTS_ = CMD, "도면 목록표 만들기", FIELDS, DEFAULTS
 
@@ -112,7 +115,8 @@ class Window(M.Window):
         p = [float(v) for v in got[0].split("\t")]
         code = draw_lisp(rows, p, cfg)[0]
         if self.in_cad(self.acad.lisp_undo, code, 600) is not None:
-            self.status("도면 %d장 목록표를 그렸습니다(UNDO 한 번으로 취소)." % (len(rows) - 1))
+            warn = font_warning(lambda c: self.acad.lisp(c, 60), rows)
+            self.status("도면 %d장 목록표를 그렸습니다(UNDO 한 번으로 취소).%s" % (len(rows) - 1, " " + warn if warn else ""))
 
 
 def main():

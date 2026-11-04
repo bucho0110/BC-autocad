@@ -118,7 +118,8 @@ class Window(ui.BaseWindow):
             return
         code, _w, _h = draw_lisp(rows, [float(v) for v in pick[0].split("\t")], cfg, merges, widths, heights, aligns)
         if self.in_cad(self.acad.lisp_undo, code, 180) is not None:
-            self.status("%d행 × %d열 표를 그렸습니다." % (len(rows), len(rows[0]) if rows else 0))
+            warn = TB.font_warning(lambda c: self.acad.lisp(c, 60), rows)
+            self.status("%d행 × %d열 표를 그렸습니다.%s" % (len(rows), len(rows[0]) if rows else 0, " " + warn if warn else ""))
 
 
 def main():

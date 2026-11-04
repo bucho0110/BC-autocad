@@ -525,15 +525,15 @@ def run(ctl, cmd: str, a: dict, budget: float = 120.0) -> dict:
         ctl._require_idle()  # 사람이 AutoCAD에서 명령 중이면 다른 도구처럼 거절한다
         return run_mpl(a)
     t1 = max(5.0, min(80.0, float(budget) - 15.0))
+    if cmd in ("MPTE", "EMTT", "DTC"):  # 다른 파일만 다룰 때는 AutoCAD 화면이 없어도 된다(지금 도면 확인은 안에서)
+        from skills.windows import mpte
+        return mpte.run_mcp(ctl, cmd, a, t1, merged_cfg)
     doc = ctl._require_idle()
     lib = lisplib.ensure_expr()
     _check_handles(ctl, lib, doc, cmd, a, t1)
 
     if cmd in mcp_more.CMDS:
         return mcp_more.run(ctl, doc, lib, cmd, a, t1, merged_cfg, lq, lambda code: _draw(ctl, doc, lib, code, t1), _need)
-    if cmd in ("MPTE", "EMTT", "DTC"):
-        from skills.windows import mpte
-        return mpte.run_mcp(ctl, doc, lib, cmd, a, t1, merged_cfg)
     if cmd == "MUIN":
         from skills.windows import muin
         return muin.run_mcp(ctl, doc, lib, a, t1)

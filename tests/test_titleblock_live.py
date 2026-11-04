@@ -4,11 +4,14 @@
 실행: <python> -X utf8 tests\\test_titleblock_live.py [출력폴더]
 끝에 "FAIL: []"이면 통과. 출력폴더(기본 %TEMP%\\bc_tb_test)에 시험 파일·캡처를 남긴다.
 도곽 셋: 축척 1, 축척 2(도면명은 MTEXT), 90도 회전. 도면번호·도면명은 영역 문자, 축척은 도곽 속성.
+0.6.1: EMTT 백업·무변경·저장 형식, 화면 없이 다른 파일 읽기, 동적 블록 도곽(AutoCAD 견본), 한글 글꼴 경고, bug_report 단독.
 """
 import asyncio
+import glob
 import json
 import math
 import os
+import subprocess
 import sys
 
 sys.dont_write_bytecode = True
@@ -18,6 +21,12 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path[:0] = [ROOT, os.path.join(ROOT, "src")]
+import background  # noqa: E402
+from skills.windows import mpte  # noqa: E402
+# AutoCAD에 들어 있는 동적 블록 견본(모형 공간에 매개변수를 바꾼 *U 이름 블록이 있다) — 읽기만 한다
+DYN = os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "Autodesk", "AutoCAD 2023", "Sample", "ko-KR",
+                   "Dynamic Blocks", "Annotation - Metric.dwg")
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(tempfile.gettempdir(), "bc_tb_test")
 os.makedirs(OUT, exist_ok=True)
 FAIL = []
@@ -85,10 +94,9 @@ async def main():
             check("skill_list에 MPTE·EMTT·DTC", all(k in lst for k in ("MPTE", "EMTT", "DTC")))
             # 시험 파일(화면 없이): 도면 C-10(축척 2, MTEXT), C-2(90도)
             f = os.path.join(OUT, "tb_file.dwg")
-            bak = os.path.splitext(f)[0] + ".bak"
-            for p in (f, bak):
-                if os.path.exists(p):
-                    os.remove(p)
+            baks = os.path.splitext(f)[0] + ".emtt-*.bak"
+            for p in [f] + glob.glob(baks):
+                os.remove(p) if os.path.exists(p) else None
             await call("build_drawing_background", code=frames_lisp([
                 (0, 0, 2.0, 0, "C-10", "종단면도", True, "1/200"),
                 (3000, 0, 1.0, 90, "C-2", "평면도", False, "1/500")]), output_path=f, preview=False)
@@ -111,12 +119,70 @@ async def main():
                     row[4], row[5] = "평면도(1)", "1/600"
                 if row[3] == "C-10":
                     row[4] = "종단면도 {갑}"
+            with open(f, "rb") as fh:
+                first = fh.read()
             e = await run("EMTT", registration=REG, rows=rows)
             check("EMTT 파일 3곳 바꿈", e["changed"] == 3 and not e["skipped"], e)
-            check("EMTT 원본 .bak", os.path.exists(bak))
+            check("EMTT 원본 백업(이름.emtt-날짜-시각.bak)", len(glob.glob(baks)) == 1 and e["backups"] == glob.glob(baks), e)
+            with open(e["backups"][0], "rb") as fh:
+                check("EMTT 백업은 고치기 전 원본", fh.read() == first, "")
             r2 = await run("MPTE", registration=REG, files=[f])
             got = {row[3]: row[4:6] for row in r2["rows"][1:]}
             check("EMTT 결과 다시 읽기", got == {"C-10": ["종단면도 {갑}", "1/200"], "C-2": ["평면도(1)", "1/600"]}, r2)
+
+            # EMTT 바뀐 값이 없으면 파일·백업을 건드리지 않는다
+            m0 = os.path.getmtime(f)
+            e = await run("EMTT", registration=REG, rows=r2["rows"])
+            check("EMTT 바뀐 값 없음 → 파일 그대로", e["changed"] == 0 and os.path.getmtime(f) == m0
+                  and len(glob.glob(baks)) == 1, e)
+            # EMTT 두 번째 고치기 → 백업이 하나 더 생기고 처음 원본 백업은 그대로
+            rows = [list(x) for x in r2["rows"]]
+            for row in rows[1:]:
+                if row[3] == "C-2":
+                    row[4] = "평면도(2)"
+            e = await run("EMTT", registration=REG, rows=rows)
+            got = sorted(glob.glob(baks))
+            with open(got[0], "rb") as fh:
+                check("EMTT 두 번 → 백업 2개, 처음 원본 유지", e["changed"] == 1 and len(got) == 2 and fh.read() == first,
+                      (e, got))
+
+            # EMTT 원래 저장 형식 유지(2013 형식 도면은 2013으로)
+            f13 = os.path.join(OUT, "tb_2013.dwg")
+            for p in [f13] + glob.glob(os.path.splitext(f13)[0] + ".emtt-*.bak"):
+                os.remove(p) if os.path.exists(p) else None
+            background.build(frames_lisp([(0, 0, 1.0, 0, "C-20", "횡단면도", False, "1/100")]), f13, preview=False,
+                             save_as="2013")
+            r = await run("MPTE", registration=REG, files=[f13])
+            rows = [list(x) for x in r["rows"]]
+            rows[1][4] = "횡단면도(1)"
+            e = await run("EMTT", registration=REG, rows=rows)
+            with open(f13, "rb") as fh:
+                check("EMTT 2013 형식 유지", e["changed"] == 1 and fh.read(6) == b"AC1027", e)
+
+            # 다른 파일만 다루면 AutoCAD 화면 없이도 돈다(지금 도면을 못 얻는 상황을 흉내)
+            class NoAcad:
+                @property
+                def doc(self):
+                    raise RuntimeError("실행 중인 AutoCAD를 찾지 못했습니다(시험)")
+
+            from skills.mcp_tools import merged_cfg
+            r = mpte.run_mcp(NoAcad(), "MPTE", {"registration": REG, "files": [f13]}, 60, merged_cfg)
+            check("MPTE 화면 없이(다른 파일만)", r["frames"] == 1 and r["rows"][1][3:5] == ["C-20", "횡단면도(1)"], r)
+            try:
+                mpte.run_mcp(NoAcad(), "MPTE", {"registration": REG}, 60, merged_cfg)
+                check("MPTE 지금 도면은 화면 필요", False, "오류가 나야 함")
+            except RuntimeError:
+                check("MPTE 지금 도면은 화면 필요", True)
+
+            # 동적 블록(이름 *U…) 도곽을 화면 없는 AutoCAD로 읽기
+            dreg = {"blocks": {"도면 제목 - 미터법": {"items": [{"name": "제목", "kind": "box", "box": [0, 0, 1, 1]}]}}}
+            r = await run("MPTE", registration=dreg, files=[DYN])
+            check("MPTE 동적 블록 도곽(파일)", r["frames"] == 1, r)
+
+            # 오류 보고서를 다른 도구보다 먼저 불러도 된다(새 파이썬에서 report만)
+            pr = subprocess.run([sys.executable, "-X", "utf8", "-B", "-c", "import report; report.build('MPTE', '시험')"],
+                                cwd=os.path.join(ROOT, "src"), capture_output=True, text=True, encoding="utf-8")
+            check("bug_report 단독", pr.returncode == 0, pr.stderr[-300:])
 
             # EMTT 지금 도면(UNDO 묶음) + 자리에 문자가 없는 항목은 건너뜀
             r = await run("MPTE", registration=REG)
@@ -134,6 +200,11 @@ async def main():
             check("DTC 자연 정렬", nos == ["C-1", "C-2", "C-10"], r)
             check("DTC 머리", r["rows"][0] == ["순번", "도면번호", "도면명", "축척"], r["rows"][0])
             check("DTC 그림", r.get("drawn"), r)
+            check("DTC 한글 글꼴 없는 스타일 경고", "한글 글꼴" in r.get("warning", ""), r.get("warning"))
+            t = await call("create_text", text="한글 문자", x=0, y=-200, height=5)
+            check("create_text 한글 글꼴 경고", "한글 글꼴" in t.get("warning", ""), t)
+            t = await call("create_text", text="ABC", x=0, y=-220, height=5)
+            check("create_text 영문은 경고 없음", "warning" not in t, t)
             await call("zoom_extents")
             cap = await call("capture_view", output_path=os.path.join(OUT, "titleblock.png"))
             check("캡처", cap.get("captured"), cap)

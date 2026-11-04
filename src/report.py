@@ -13,6 +13,8 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:  # skills 패키지 — 다른 스킬 도구보다 먼저 불려도 되게
+    sys.path.insert(0, ROOT)
 LOCAL = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
 MCP_LOG = os.path.join(LOCAL, "cad-mcp-kr", "cad_mcp.log")
 DATA = os.path.join(LOCAL, "bc-autocad")
@@ -46,7 +48,6 @@ def mask(text: str) -> str:
 
 def _version():
     try:
-        sys.path.insert(0, ROOT)
         from skills.common.ui import VERSION
         return VERSION
     except Exception as e:  # noqa: BLE001 — 보고서는 무엇이든 만들어야 한다
@@ -112,7 +113,7 @@ def acad_env(ctl):
 
 def build(command="", problem="", error_text="", acad=None, acad_error="", log_lines=40):
     """→ (마크다운 글, 저장한 파일 경로)."""
-    from skills.common import settings as S  # noqa: E402 — ROOT를 sys.path에 넣은 뒤
+    from skills.common import settings as S  # noqa: E402 — 맨 위에서 ROOT를 sys.path에 넣었다
     cmd = (command or "").strip().upper()
     now = datetime.datetime.now()
     lines = ["## 오류 보고 (BC-autocad)", "",

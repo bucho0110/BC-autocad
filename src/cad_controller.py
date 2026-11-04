@@ -1204,6 +1204,26 @@ class AcadControl:
             pass
         return out
 
+    def _font_warning(self, out: dict, text: str) -> dict:
+        """한글을 썼는데 그 문자의 스타일에 한글 글꼴이 없으면 out에 warning을 붙인다(문자는 그대로 둔다)."""
+        if not any("가" <= ch <= "힣" or "ㄱ" <= ch <= "ㆎ" for ch in text):
+            return out
+        try:
+            d = self.doc
+            st = d.TextStyles.Item(d.HandleToObject(out["handle"]).StyleName)
+            face = ""
+            try:
+                face = st.GetFont()[0]
+            except Exception:
+                pass
+            if not (face or st.BigFontFile):
+                out["warning"] = ("문자 스타일 '%s'(%s)에 한글 글꼴이 없어 화면에 ?로 보일 수 있습니다. "
+                                  "get_text_styles에서 korean_capable 스타일을 고르거나 set_text_style로 만드세요."
+                                  % (st.Name, st.FontFile or "글꼴 없음"))
+        except Exception as e:  # noqa: BLE001 — 경고용 확인이므로 실패해도 만든 문자는 그대로 돌려준다
+            logger.debug("한글 글꼴 확인 실패: %s", e)
+        return out
+
     def create_text(self, text, x, y, height=2.5, rotation=0.0, text_style="", **style) -> dict:
         if not isinstance(text, str) or text == "":
             raise ValueError("text가 비어 있습니다")
@@ -1218,7 +1238,7 @@ class AcadControl:
                 ent.Rotation = rot
         out = self._create("문자", lambda ms: ms.AddText(text, self._vpt(*p), h), style, extra)
         out["content"] = text
-        return out
+        return self._font_warning(out, text)
 
     def create_mtext(self, text, x, y, height=2.5, width=0.0, text_style="", **style) -> dict:
         if not isinstance(text, str) or text == "":
@@ -1235,7 +1255,7 @@ class AcadControl:
             ent.Height = h
         out = self._create("여러 줄 문자", lambda ms: ms.AddMText(self._vpt(*p), w, text), style, extra)
         out["content"] = text
-        return out
+        return self._font_warning(out, text)
 
     def create_hatch(self, points=None, pattern="SOLID", scale=1.0, boundary_handles=None, **style) -> dict:
         sc = V.positive(scale, "scale")

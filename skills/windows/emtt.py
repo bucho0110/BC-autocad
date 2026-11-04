@@ -3,8 +3,9 @@
 
 1) [엑셀로 내보내기]는 MPTE와 같다(경로·도곽핸들 열이 꼭 들어간다). 2) 엑셀에서 값을 고친다.
 3) [엑셀 값으로 도면 고치기]: 표의 경로·도곽핸들로 도곽을 다시 찾아, 값이 달라진 항목만 바꾼다.
-- 지금 도면은 바로 고치고(UNDO 한 번), 다른 파일은 화면 없는 AutoCAD로 고쳐 저장한다. 저장 전 원본은 같은 폴더의
-  <이름>.bak으로 남긴다(AutoCAD 자체 백업과 같은 이름). AutoCAD에 열려 있는 다른 도면은 덮어쓰지 않고 건너뛴다.
+- 지금 도면은 바로 고치고(UNDO 한 번), 다른 파일은 화면 없는 AutoCAD로 고쳐 원래 저장 형식(2013 등) 그대로 저장한다.
+  실제로 바뀐 글자가 있을 때만 파일을 바꾸고, 바꾸기 전 원본은 같은 폴더에 <이름>.emtt-날짜-시각.bak으로 남긴다
+  (돌릴 때마다 새로 남겨 처음 원본이 지워지지 않는다). AutoCAD에 열려 있는 다른 도면은 덮어쓰지 않고 건너뛴다.
 - 항목 자리에 문자가 하나일 때만 바꾼다(없거나 여럿이면 건너뛰고 이유를 알린다). MTEXT는 서식 없이 새 글자로 바뀐다.
 apply()는 창 없이도 쓴다(MCP skill_run).
 """
@@ -12,6 +13,7 @@ apply()는 창 없이도 쓴다(MCP skill_run).
 import os
 import shutil
 import tempfile
+import time
 import tkinter as tk
 
 from skills.common import excel as X
@@ -22,7 +24,7 @@ from validators import lisp_str as ls  # src: LISP 문자열 이스케이프(역
 
 CMD = "EMTT"
 FIELDS = [f for f in M.FIELDS if f[0] in ("공간", "정렬")] + [
-    ("백업", "다른 파일을 고칠 때 원본을 <이름>.bak으로 남기기", "bool", True, None),
+    ("백업", "다른 파일을 고칠 때 원본을 <이름>.emtt-날짜-시각.bak으로 남기기", "bool", True, None),
 ]
 DEFAULTS = {k: d for k, _l, _t, d, _c in FIELDS}
 
@@ -45,6 +47,16 @@ def _mtext_safe(v):
     """MTEXT에서 역슬래시·중괄호가 서식 코드로 읽히지 않게."""
     b = chr(92)
     return v.replace(b, b + b).replace("{", b + "{").replace("}", b + "}")
+
+
+def backup_path(path):
+    """원본 백업 이름 <이름>.emtt-YYMMDD-HHMMSS.bak — 이미 있으면 -2, -3 …을 붙인다(덮어쓰지 않는다)."""
+    stem = "%s.emtt-%s" % (os.path.splitext(path)[0], time.strftime("%y%m%d-%H%M%S"))
+    out, i = stem + ".bak", 1
+    while os.path.exists(out):
+        i += 1
+        out = "%s-%d.bak" % (stem, i)
+    return out
 
 
 def plan(rows, reg, read):
@@ -98,14 +110,14 @@ def apply(rows, reg, cfg, live, live_edit, live_path="", open_paths=()):
     rcfg = dict(M.DEFAULTS, 공간=cfg["공간"], 정렬=cfg["정렬"])
     work = tempfile.mkdtemp(prefix="bc_emtt_")
     try:
-        read = M.gather(files, reg, rcfg, live, live_path, work)
+        read = M.gather(files, reg, rcfg, live, live_path)
         # 표의 경로를 gather가 돌려준 경로로 맞춘다(지금 도면 이름표 포함)
         norm = {f: p for f, (p, _i) in zip(files, read)}
         rows = [rows[0]] + [list(r[:ip]) + [norm.get(M.cell_str(r[ip]), M.cell_str(r[ip]))] + list(r[ip + 1:])
                             for r in rows[1:] if len(r) > ip]
         todo, skipped = plan(rows, reg, read)
         live_key = os.path.normcase(live_path) if live_path else ""
-        changed, done = 0, []
+        changed, done, backups = 0, [], []
         for path, ch in todo.items():
             key = os.path.normcase(path)
             is_live = path == M.CURRENT or key == live_key
@@ -118,15 +130,19 @@ def apply(rows, reg, cfg, live, live_edit, live_path="", open_paths=()):
                 continue
             else:
                 tmp = os.path.join(work, "edit_%d.dwg" % len(done))
-                res = background.build(edit_lisp(ch), tmp, base_drawing=path, preview=False)["lines"]
-                if cfg["백업"]:
-                    shutil.copy2(path, os.path.splitext(path)[0] + ".bak")
-                shutil.copy2(tmp, path)
+                res = background.build(edit_lisp(ch), tmp, base_drawing=path, preview=False,
+                                       save_as=background.dwg_format(path))["lines"]
+                if any(r.startswith("E\t") for r in res):  # 바뀐 글자가 없으면 원본을 건드리지 않는다
+                    if cfg["백업"]:
+                        bak = backup_path(path)
+                        shutil.copy2(path, bak)
+                        backups.append(bak)
+                    shutil.copy2(tmp, path)
             n = sum(1 for r in res if r.startswith("E\t"))
             skipped += [[path, "", r.split("\t")[1], "고치지 못함(잠긴 레이어 등)"] for r in res if r.startswith("L\t")]
             changed += n
             done.append([path, n])
-        return {"changed": changed, "files": done, "skipped": skipped}
+        return {"changed": changed, "files": done, "skipped": skipped, "backups": backups}
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
@@ -172,11 +188,13 @@ class Window(M.Window):
             self.error("지금 엑셀 시트에서 '도곽핸들' 머리 줄을 찾지 못했습니다(① 내보낸 시트를 띄워 두세요).")
             return
         try:
-            doc = self.acad.doc
+            # 표에 지금 도면 줄이 없으면 AutoCAD 화면이 없어도 된다
+            doc = M.live_doc(lambda: self.acad.doc, M.needs_live("EMTT", {"rows": rows[start:]}, []))
             self.status("고치는 중…")
             self.update()
-            res = apply(rows[start:], self.reg, cfg, lambda code: self.acad.lisp(code, 600),
-                        lambda code: self.acad.lisp_undo(code, 600), doc.FullName or "", M.open_paths(doc))
+            res = apply(rows[start:], self.reg, cfg, (lambda code: self.acad.lisp(code, 600)) if doc else None,
+                        lambda code: self.acad.lisp_undo(code, 600), (doc.FullName or "") if doc else "",
+                        M.open_paths(doc))
         except Exception as e:  # noqa: BLE001 — 사람이 볼 창이므로 원문을 보인다
             self.error("%s: %s" % (type(e).__name__, e))
             return
