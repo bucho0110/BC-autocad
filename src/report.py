@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:  # skills 패키지 — 다른 스킬 도구보다 먼저 불려도 되게
     sys.path.insert(0, ROOT)
 LOCAL = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
-MCP_LOG = os.path.join(LOCAL, "cad-mcp-kr", "cad_mcp.log")
+MCP_LOG = os.path.join(LOCAL, "bc-autocad", "logs", "cad_mcp.log")  # src/server.py와 같은 곳
 DATA = os.path.join(LOCAL, "bc-autocad")
 PACKAGES = ("mcp", "pywin32", "Pillow", "pypdf", "fonttools")
 
@@ -29,14 +29,19 @@ def mask(text: str) -> str:
         if p:
             s = re.sub(re.escape(p), "%USERPROFILE%", s, flags=re.I)
     for name in (os.environ.get("USERNAME"), os.environ.get("COMPUTERNAME")):
-        if name and len(name) > 2:
+        if not name:
+            continue
+        if len(name) > 2:
             s = re.sub(re.escape(name), "<이름>", s, flags=re.I)
-    # 설치 폴더·파이썬 폴더는 그대로 두고(원인 찾기에 필요), 그 밖의 폴더 경로는 가린다(과업·지구 이름이 들어 있을 수 있다)
+        else:  # 두 글자 이름(박찬·PC 등)은 경로 안 폴더 이름일 때만 — 보고서 글자(BC 버전 등)까지 깨지지 않게
+            s = re.sub(r"(?<=[\\/])%s(?=[\\/]|$)" % re.escape(name), "<이름>", s, flags=re.I | re.M)
+    # 설치 폴더·파이썬 폴더는 마지막 폴더 이름만 남기고(원인 찾기에 필요한 만큼), 그 밖의 폴더 경로는 가린다
+    # (상위 폴더에 회사·과업·지구 이름이 들어 있을 수 있다)
     keep = {}
     for i, p in enumerate(sorted({ROOT, sys.prefix, sys.base_prefix}, key=len, reverse=True)):
-        for j, v in enumerate((p, p.replace("\\", "/"))):
+        for j, (v, sep) in enumerate(((p, "\\"), (p.replace("\\", "/"), "/"))):
             tag = "\x00%d_%d\x00" % (i, j)
-            keep[tag] = v
+            keep[tag] = "<경로>" + sep + os.path.basename(p.rstrip("\\/"))
             s = re.sub(re.escape(v), lambda _m, t=tag: t, s, flags=re.I)
     s = re.sub(r"[A-Za-z]:[\\/](?:[^\\/\r\n\"'`<>|*?]*[\\/])*", "<경로>\\\\", s)
     for tag, v in keep.items():

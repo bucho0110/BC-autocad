@@ -49,7 +49,8 @@ def to_rows(read, cfg):
             no = it["values"].get(cfg["번호항목"], "")
             if cfg["빈번호제외"] and not no:
                 continue
-            items.append([no, it["values"].get(cfg["제목항목"], "")] + [it["values"].get(e, "") for e in ex])
+            one = lambda k: it["values"].get(k, "").replace("\n", " ")  # noqa: E731 — 목록표 칸은 한 줄
+            items.append([one(cfg["번호항목"]), one(cfg["제목항목"])] + [one(e) for e in ex])
     if cfg["정렬"] == "도면번호":
         items.sort(key=lambda r: _natural(r[0]))
     return [["순번", "도면번호", "도면명"] + ex] + [[i + 1] + r for i, r in enumerate(items)]

@@ -244,6 +244,46 @@ def check_banned(code: str) -> None:
                          "떠서 멈출 수 있습니다. 불러올 파일의 코드 본문을 run_lisp에 직접 넣으세요." % hit.group(1))
 
 
+# 사람의 입력을 기다리거나 AutoCAD 명령을 부르는 함수 — run_lisp로 보내면 MCP는 입력을 줄 수 없어 제한시간까지 멈춘다.
+# 닫힌 목록만 막는다(getvar·getenv·vla-get-* 같은 읽기 함수는 통과).
+_INTERACTIVE = ("command", "command-s", "vl-cmdf", "getpoint", "getcorner", "getdist", "getangle", "getorient",
+                "getreal", "getint", "getstring", "getkword", "getfiled", "entsel", "nentsel", "nentselp", "grread")
+_INTERACTIVE_CALL = re.compile(r"(?:\(\s*(?:(?:function|quote)\s+)?|')(%s)(?=$|[\s()])"
+                               % "|".join(re.escape(f) for f in _INTERACTIVE))
+_SSGET_AUTO = set("XPLIAWCF")  # 사람이 고르지 않는 ssget 모드(전체·이전·마지막·이미 고른 것·점으로 창/교차/울타리)
+
+
+def _ssget_waits(toks, i) -> bool:
+    """toks[i]가 '(' 이고 다음이 ssget일 때, 사람이 고르기를 기다리는 호출인가.
+    (ssget) · (ssget '(필터)) · (ssget (list 필터)) · (ssget ":S")처럼 모드가 없거나 고르는 모드면 기다린다."""
+    kind, txt = toks[i + 1]
+    words = txt.split()
+    if kind != "word" or not words or words[0].lower() != "ssget":
+        return False
+    rest = txt.strip()[5:].strip()
+    if rest:  # (ssget pt1 pt2)처럼 점 변수면 고르지 않는다. (ssget '(...))는 필터만 → 고른다
+        return rest.startswith("'")
+    nk, nt = toks[i + 2] if i + 2 < len(toks) else (")", ")")
+    if nk == "str":
+        return not (set(nt.strip('"').upper().replace("_", "").replace(":", "")) & _SSGET_AUTO)
+    return nk in (")", "(")
+
+
+def check_interactive(code: str) -> None:
+    """run_lisp 전용: 문자열·주석 밖에서 입력 대기 함수나 사람이 고르는 (ssget)을 부르면 보내기 전에 막는다.
+    BC 명령 창(getpoint로 점을 받는 창)·화면 없는 작도(command 허용)는 이 검사를 거치지 않는다."""
+    toks = [(k, t) for k, t in _lisp_tokens(code) if k not in ("note", "block", "open_block")]
+    bare = "".join(t if k in ("(", ")", "word") else " " for k, t in toks).lower()
+    hit = _INTERACTIVE_CALL.search(bare)
+    if hit:
+        raise ValueError("(%s ...)는 run_lisp에서 쓸 수 없습니다 — 사람의 입력이나 AutoCAD 명령을 기다리느라 멈춥니다. "
+                         "개체는 entmake·vla-Add*로 만들고 점·선택은 값으로 넣으세요(전용 도구가 있으면 그것으로)."
+                         % hit.group(1))
+    if any(k == "(" and i + 1 < len(toks) and _ssget_waits(toks, i) for i, (k, _t) in enumerate(toks)):
+        raise ValueError('사람이 고르는 (ssget)은 run_lisp에서 쓸 수 없습니다 — 선택을 기다리느라 멈춥니다. '
+                         '(ssget "_X" 필터)처럼 고르지 않는 모드를 주세요.')
+
+
 def _flatten_string(lit: str) -> str:
     """문자열 토막 하나를 한 줄로: 실제 줄바꿈 → \\n, 탭 → \\t, CR은 버린다.
     줄 끝의 \\ (다음 줄로 이어 쓰기)는 \\\\ + \\n 으로 바꿔 파일이 두 줄로 갈라지지 않게 한다."""

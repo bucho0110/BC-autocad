@@ -6,7 +6,9 @@
 - 지금 도면은 바로 고치고(UNDO 한 번), 다른 파일은 화면 없는 AutoCAD로 고쳐 원래 저장 형식(2013 등) 그대로 저장한다.
   실제로 바뀐 글자가 있을 때만 파일을 바꾸고, 바꾸기 전 원본은 같은 폴더에 <이름>.emtt-날짜-시각.bak으로 남긴다
   (돌릴 때마다 새로 남겨 처음 원본이 지워지지 않는다). AutoCAD에 열려 있는 다른 도면은 덮어쓰지 않고 건너뛴다.
-- 항목 자리에 문자가 하나일 때만 바꾼다(없거나 여럿이면 건너뛰고 이유를 알린다). MTEXT는 서식 없이 새 글자로 바뀐다.
+- 항목 자리에 문자가 하나면 그 문자를, 여럿(위→아래로 칸 안 여러 줄)이면 줄 수가 같을 때 줄마다 하나씩 바꾼다.
+  칸 안 줄바꿈은 MTEXT 줄바꿈(\\P)이 되고, 250자 넘는 MTEXT는 조각으로 나눠 쓴다. 글꼴·색 같은 서식이 있는 MTEXT,
+  한 줄 문자에 줄바꿈, 줄 수가 다른 여러 줄은 건너뛰고 이유를 알린다.
 apply()는 창 없이도 쓴다(MCP skill_run).
 """
 
@@ -29,24 +31,43 @@ FIELDS = [f for f in M.FIELDS if f[0] in ("공간", "정렬")] + [
 DEFAULTS = {k: d for k, _l, _t, d, _c in FIELDS}
 
 
+CHUNK = 200  # MTEXT 문자열 조각 길이 — 한 그룹 250자 제한보다 작게, 긴 글은 앞 조각을 3번 그룹으로
+
+
+def mtext_chunks(v):
+    """MTEXT에 쓸 글(이미 _mtext_safe) → 조각 목록. 역슬래시 코드(\\P·\\\\ 등)가 조각 사이에서 끊기지 않게 자른다."""
+    b = chr(92)
+    out = []
+    while len(v) > CHUNK:
+        cut = CHUNK
+        while cut > 1 and (len(v[:cut]) - len(v[:cut].rstrip(b))) % 2 == 1:  # 끝이 홀수 개 역슬래시면 한 글자 덜
+            cut -= 1
+        out.append(v[:cut])
+        v = v[cut:]
+    return out + [v]
+
+
 def edit_lisp(changes) -> str:
-    """changes [(핸들, 새 글자)] → 결과 줄 E(바꿈)·L(잠긴 레이어 등으로 못 바꿈)·N(핸들 없음)<탭>핸들.
-    화면 없는 AutoCAD에서도 돌도록 entmod로 바꾼다."""
-    pairs = " ".join('(list "%s" "%s")' % (ls(h), ls(v)) for h, v in changes)
+    """changes [(핸들, 새 글자 또는 MTEXT 조각 목록)] → 결과 줄 E(바꿈)·L(잠긴 레이어 등으로 못 바꿈)·N(핸들 없음)<탭>핸들.
+    화면 없는 AutoCAD에서도 돌도록 entmod로 바꾼다. MTEXT는 앞 조각을 3번, 마지막 조각을 1번 그룹으로 넣는다."""
+    def one(h, v):
+        parts = v if isinstance(v, list) else [v]
+        return '(list "%s" "%s" (list %s))' % (ls(h), ls(parts[-1]), " ".join('"%s"' % ls(p) for p in parts[:-1]))
+    pairs = " ".join(one(h, v) for h, v in changes)
     return ('(foreach _p (list %s) (setq _e (handent (car _p)) _r "N")'
             ' (if _e (progn (setq _ed (entget _e))'
             '  (if (= (cdr (assoc 0 _ed)) "MTEXT")'
             '   (setq _ed (append (vl-remove-if (quote (lambda (q) (member (car q) (quote (1 3))))) _ed)'
-            '    (list (cons 1 (cadr _p)))))'
+            '    (mapcar (quote (lambda (c) (cons 3 c))) (caddr _p)) (list (cons 1 (cadr _p)))))'
             '   (setq _ed (subst (cons 1 (cadr _p)) (assoc 1 _ed) _ed)))'
             '  (if (entmod _ed) (progn (entupd _e) (setq _r "E")) (setq _r "L"))))'
             ' (write-line (strcat _r _d (car _p)) _fp))') % pairs
 
 
 def _mtext_safe(v):
-    """MTEXT에서 역슬래시·중괄호가 서식 코드로 읽히지 않게."""
+    """MTEXT에서 역슬래시·중괄호가 서식 코드로 읽히지 않게, 칸 안 줄바꿈은 MTEXT 줄바꿈(\\P)으로."""
     b = chr(92)
-    return v.replace(b, b + b).replace("{", b + "{").replace("}", b + "}")
+    return v.replace(b, b + b).replace("{", b + "{").replace("}", b + "}").replace("\n", b + "P")
 
 
 def backup_path(path):
@@ -83,15 +104,36 @@ def plan(rows, reg, read):
             skipped.append([path, hd, "", "도곽을 찾지 못함(도면이 바뀌었으면 다시 내보내기)"])
             continue
         for n in names:
-            new = M.cell_str(r[head.index(n)])
-            if new == it["values"].get(n, ""):
+            new, old = M.cell_str(r[head.index(n)]), it["values"].get(n, "")
+            if new == old:
                 continue
             tg = it["targets"].get(n) or []
-            if len(tg) != 1:
-                skipped.append([path, hd, n, "자리에 문자가 없음" if not tg else "자리에 문자가 %d개" % len(tg)])
+            why = _why_not(new, old, tg, it)
+            if why:
+                skipped.append([path, hd, n, why])
                 continue
-            todo.setdefault(path, []).append((tg[0], new))
+            if len(tg) == 1:
+                todo.setdefault(path, []).append((tg[0], new))
+            else:  # 여러 줄 → 줄마다 하나씩(바뀐 줄만)
+                todo.setdefault(path, []).extend((h, v) for h, o, v in zip(tg, old.split("\n"), new.split("\n"))
+                                                 if o != v)
     return todo, skipped
+
+
+def _why_not(new, old, tg, it):
+    """고치지 않을 이유(없으면 '')."""
+    if not tg:
+        return "자리에 문자가 없음"
+    if any(h in it.get("formatted", ()) for h in tg):
+        return "글꼴·색 같은 서식이 있는 MTEXT라 건너뜀(도면에서 직접 고치세요)"
+    if len(tg) == 1:
+        if "\n" in new and tg[0] not in it.get("mtext", ()):
+            return "한 줄 문자(TEXT·속성)에는 줄을 바꿀 수 없음"
+        return ""
+    lines_old, lines_new = old.split("\n"), new.split("\n")
+    if len(lines_old) != len(tg) or len(lines_new) != len(tg):
+        return "자리에 문자가 %d개(칸 안 줄 수를 %d줄 그대로 두고 고치면 줄마다 바뀜)" % (len(tg), len(tg))
+    return ""
 
 
 def apply(rows, reg, cfg, live, live_edit, live_path="", open_paths=()):
@@ -122,7 +164,7 @@ def apply(rows, reg, cfg, live, live_edit, live_path="", open_paths=()):
             key = os.path.normcase(path)
             is_live = path == M.CURRENT or key == live_key
             mt = {h for pth, items in read if pth == path for it in items for h in it["mtext"]}
-            ch = [(h, _mtext_safe(v) if h in mt else v) for h, v in ch]
+            ch = [(h, mtext_chunks(_mtext_safe(v)) if h in mt else v) for h, v in ch]
             if is_live:
                 res = live_edit(edit_lisp(ch))
             elif key in open_paths:

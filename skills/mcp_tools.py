@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""MCP에서 스킬 명령을 부르는 통로.
+"""MCP에서 BC 명령을 부르는 통로.
 
 - skill_list: 명령 목록
 - skill_open: 창(또는 설정 창)을 띄운다 — 사람이 쓰는 기본 방식

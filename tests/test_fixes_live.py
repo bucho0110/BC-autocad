@@ -174,10 +174,10 @@ async def main():
 
             # 현재 레이어가 잠겨 있어도 DIBC 임시 선이 남지 않는다
             n0 = (await call("count_entities"))["total"]
-            await call("run_lisp", code='(bc:ensure-layer "LK" 7) (setvar "CLAYER" "LK") (command "_.-LAYER" "_LO" "LK" "") (write-line "" _fp)')
+            await call("run_lisp", code='(bc:ensure-layer "LK" 7) (setvar "CLAYER" "LK") (vla-put-Lock (vla-item (vla-get-Layers (vla-get-ActiveDocument (vlax-get-acad-object))) "LK") :vlax-true) (write-line "" _fp)')
             r = await call("skill_run", command="DIBC", args=json.dumps({"handle": ha_dibc, "others": [hb_dibc], "settings": {"간격": 500.0}}))
             n1 = (await call("count_entities"))["total"]
-            await call("run_lisp", code='(command "_.-LAYER" "_U" "LK" "") (setvar "CLAYER" "0") (write-line "" _fp)')
+            await call("run_lisp", code='(vla-put-Lock (vla-item (vla-get-Layers (vla-get-ActiveDocument (vlax-get-acad-object))) "LK") :vlax-false) (setvar "CLAYER" "0") (write-line "" _fp)')
             check("현재 레이어 잠김에도 DIBC 임시 선 안 남음", n1 == n0 and len(r["table"]) > 1, (n0, n1))
             # 폴리선 대상이면 임시 개체를 아예 만들지 않는다(핸들 번호가 그대로)
             probe = '(setq _e (entmakex (list (cons 0 "POINT") (list 10 0.0 0.0 0.0)))) (write-line (cdr (assoc 5 (entget _e))) _fp) (entdel _e)'

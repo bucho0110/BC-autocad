@@ -242,9 +242,12 @@ t("run_lisp_error_rollback", c.run_lisp,
 check("lisp_error_rollback", S(c.count_entities)["total"] == n0, "")
 sc = t("send_command", c.send_command, '(entmake (list (cons 0 "POINT") (cons 8 "0") (list 10 1.0 2.0 0.0)))')
 t("send_command_raw", c.send_command, "_.ZOOM _E", expect_error=True)
-# 제한시간 → ESC 복구 (입력 대기 함수)
+# run_lisp는 입력 대기 함수를 보내기 전에 막는다
+t("run_lisp_blocks_getpoint", c.run_lisp, '(getpoint "MCP시험-입력대기: ")', 3, expect_error=True)
+t("run_lisp_blocks_command", c.run_lisp, '(command "_.LINE" "0,0" "1,1" "")', 3, expect_error=True)
+# 제한시간 → ESC 복구 (입력 대기 함수 — 막는 검사를 거치지 않는 내부 실행기로)
 t0 = time.time()
-t("run_lisp_timeout_esc", c.run_lisp, '(getpoint "MCP시험-입력대기: ")', 3, expect_error=True)
+t("lisp_timeout_esc", c.lisp, '(getpoint "MCP시험-입력대기: ")', 3, expect_error=True)
 check("timeout_recovered", time.time() - t0 < 15 and S(c.health_check)["cmdactive"] == 0, round(time.time() - t0, 1))
 
 # 뷰·캡처

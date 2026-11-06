@@ -32,8 +32,12 @@ def main():
             lines.append("(defun c:%s () (bc:fn-%s))" % (a, cmd))
     lines += ["", ";; BCHELP: 명령 목록 창을 띄우고, 명령줄 기록(F2)에도 목록을 남긴다",
               "(defun c:BCHELP ()", '  (bc:open-window "BCHELP")', '  (princ "\\n[BC] 명령 목록 (F2로 전체 보기)")']
-    group = None
+    cat = group = None
     for cmd, info in registry.COMMANDS.items():
+        if info["category"] != cat:  # 큰 분류(토목·도면 작업)
+            cat = info["category"]
+            n = sum(1 for x in registry.COMMANDS.values() if x["category"] == cat)
+            lines.append('  (princ "\\n■ %s (%d)")' % (cat, n))
         if info["group"] != group:
             group = info["group"]
             lines.append('  (princ "\\n  ── %s")' % group)

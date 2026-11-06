@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""AutoCAD용 MCP 서버(한글판). AutoCAD 2023에서 시험.
+"""AutoCAD용 MCP 서버. AutoCAD 2023에서 시험.
 
 만든 사람: BUCHO. 라이선스는 패키지의 LICENSE(BUCHO 무료 공개 라이선스).
 속 구현은 AutoCAD 실측(README 9장) 기준이다.
@@ -37,10 +37,10 @@ if sys.platform == "win32" and os.environ.get("PYTHONIOENCODING") is None:
 
 
 def _log_handlers():
-    """stderr + 회전 로그 파일(%LOCALAPPDATA%/cad-mcp-kr/cad_mcp.log). stdout은 MCP 통신용이라 쓰지 않는다."""
+    """stderr + 회전 로그 파일(%LOCALAPPDATA%/bc-autocad/logs/cad_mcp.log — 설정·창 로그와 같은 폴더). stdout은 MCP 통신용이라 쓰지 않는다."""
     handlers = [logging.StreamHandler(sys.stderr)]
     base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
-    path = os.path.join(base, "cad-mcp-kr", "cad_mcp.log")
+    path = os.path.join(base, "bc-autocad", "logs", "cad_mcp.log")
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         handlers.append(RotatingFileHandler(path, maxBytes=5 * 1024 * 1024, backupCount=2, encoding="utf-8"))
@@ -53,11 +53,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
                     handlers=_log_handlers())
 logger = logging.getLogger("cad_mcp")
 
-INSTRUCTIONS = """AutoCAD 제어 MCP(한글판). AutoCAD의 '활성 도면'에 작업한다(AutoCAD를 자동 실행하지 않음).
+INSTRUCTIONS = """AutoCAD 제어 MCP. AutoCAD의 '활성 도면'에 작업한다(AutoCAD를 자동 실행하지 않음).
 
 작업 전 필수:
-1. 그리기나 토목 작업을 시작하기 전에 guide를 한 번 부른다(작도·명령·조회 요령).
-2. 있는 것부터 쓴다 — 토목 명령 94개(skill_list)와 create_* 작도 도구. run_lisp로 직접 그리는 것은 마지막 수단.
+1. 그리기나 BC 명령 작업을 시작하기 전에 guide를 한 번 부른다(작도·명령·조회 요령).
+2. 있는 것부터 쓴다 — BC 명령(전용 명령) 94개(skill_list)와 create_* 작도 도구. run_lisp로 직접 그리는 것은 마지막 수단.
 3. 한글 문자를 쓰기 전에 한글 글꼴 스타일을 준비한다(아래 '한글').
 
 - 좌표는 도면 단위, 각도는 도(degree), 색은 ACI(0~256) 또는 true_color "R,G,B".
@@ -80,15 +80,17 @@ INSTRUCTIONS = """AutoCAD 제어 MCP(한글판). AutoCAD의 '활성 도면'에 �
   이미 그린 닫힌 경계의 해치는 create_hatch(boundary_handles=[...]). 같은 것을 run_lisp로 흉내 내지 않는다.
 - "백그라운드로", "화면 건드리지 말고 파일로" 같은 요청이나 큰 그림·새 도면 만들기는 build_drawing_background
   (화면 없는 AutoCAD로 새 DWG를 만든다. 사용자의 AutoCAD 화면은 건드리지 않는다).
-- 스킬 명령 94개(EL·지형·종단·횡단·좌표·선형·측점·제방·사면·하천 횡단·수량·표·정리·수정·레이어·도면 불러오기·계산기·다중 플롯·도곽 문자 엑셀, 예: FE·CCON·GRP·DRP·QCAR·RET·XY·DSTA·HWLM·LOL·CALC): skill_list로 목록,
+- BC 명령(전용 명령) 94개 — 큰 분류 토목(EL·지형·종단·횡단·좌표·선형·측점·사면·하천 횡단)·도면 작업(수량·표·정리·수정·레이어·도면 불러오기·계산기·다중 플롯·도곽 문자 엑셀), 예: FE·CCON·GRP·DRP·QCAR·RET·XY·DSTA·HWLM·LOL·CALC): skill_list로 목록,
   사람에게는 skill_open(창)이 기본, 값이 정해진 일은 skill_run. AutoCAD에서는 BCFE처럼 BC를 붙인 이름(BCHELP에서 체크한 명령만 FE 같은 짧은 이름도).
   · skill_run 전에 skill_list(command=명령)로 settings 키 이름을 확인한다(명령마다 이름·의미가 다르다).
   · skill_run은 엑셀 없이 JSON으로 한다(rows로 넣고 table·rows로 받는다). 설명의 '엑셀'은 창에서 쓸 때 이야기다.
-  · 좌표 스킬(XY·CEX·CIM·ZBC·WCD)은 settings.좌표가 기본 '토목'(X=북, Y=동)이라 CAD의 [x, y]와 순서가 반대다.
+  · 좌표 명령(XY·CEX·CIM·ZBC·WCD)은 settings.좌표가 기본 '토목'(X=북, Y=동)이라 CAD의 [x, y]와 순서가 반대다.
     CAD의 [x, y] 순서로 주고받으려면 settings {"좌표": "수학"}.
   · '높이'(문자 크기)는 명령마다 기준이 다르다(축척 1000 기준값 또는 도면 단위 — skill_list(command)의 label에 적혀 있다).
     처음엔 기본값을 쓰고 capture_view로 확인한다.
-  · 경사는 '1:1.5'·'2%' 같은 글자로 주는 것이 안전하다(숫자 1.5는 스킬에 따라 1:1.5 또는 기울기 1.5로 읽힌다).
+  · 경사는 '1:1.5'·'2%' 같은 글자로 주는 것이 안전하다(숫자 1.5는 명령에 따라 1:1.5 또는 기울기 1.5로 읽힌다).
+- 공간: 조회(get_entities·ssget_query·count_entities·find_text)와 작도(create_*·insert_block)는 기본이 모형 공간이다.
+  배치(종이 공간)는 layout="배치 이름"(get_layouts로 이름 확인), 조회는 "*"로 전부. 배치 개체 결과에는 layout이 붙는다.
 - 영역 (0,0,0,0): get_entities의 숫자 영역 0,0,0,0은 '영역 없음(전체)', ssget_query의 글자 area "0,0,0,0"은 원점 한 점.
 - LISP로 그린 뒤 줌·캡처를 하면 그 줌도 UNDO에 남는다 — undo 결과의 view_changed를 보고 한 번 더 부를지 정한다.
 - 핸들은 도면마다 따로다. 도면을 여럿 열어 두었으면 activate_document로 대상 도면을 먼저 정한다.
@@ -126,9 +128,9 @@ async def _run(fn, *args, timeout: float = 90.0, **kwargs) -> str:
         raise ToolError("%s: %s" % (type(e).__name__, e))
 
 
-def _style(layer="", color=-1, true_color="", linetype="", lineweight=-1) -> dict:
+def _style(layer="", color=-1, true_color="", linetype="", lineweight=-1, layout="") -> dict:
     return {"layer": layer, "color": color, "true_color": true_color, "linetype": linetype,
-            "lineweight": lineweight}
+            "lineweight": lineweight, "layout": layout}
 
 
 # ---------------------------------------------------------------- 연결·정보
@@ -155,8 +157,8 @@ GUIDE = {
    - 반복 배치: copy_entities·array_linear·array_polar, 블록: create_block·insert_block
 5. 확인: zoom_extents 후 capture_view로 화면을 보고 글자 크기·겹침(find_text_overlaps)을 고친다.
 run_lisp는 위 도구로 안 되는 계산·조회·일괄 편집에만 쓴다.""",
-    "명령": """[토목 명령(스킬) 쓰기]
-1. skill_list()로 94개 목록(command·title·desc), 쓸 명령은 skill_list(command="DRP")로 settings 키를 확인.
+    "명령": """[BC 명령 쓰기]
+1. skill_list()로 94개 목록(command·title·category·group·desc), 쓸 명령은 skill_list(command="DRP")로 settings 키를 확인.
 2. 값이 정해진 일은 skill_run(command, settings, rows), 사람이 고를 일은 skill_open(창).
 3. 좌표 명령(XY·CEX·CIM·ZBC·WCD)은 기본이 토목 좌표(X=북, Y=동) — CAD 순서로 쓰려면 settings {"좌표": "수학"}.
 4. 경사는 '1:1.5'·'2%' 같은 글자로 준다. 문자 높이 기준은 명령마다 다르다(settings의 label 참고).""",
@@ -170,14 +172,25 @@ run_lisp는 위 도구로 안 되는 계산·조회·일괄 편집에만 쓴다.
 
 @mcp.tool(structured_output=False)
 async def guide(ctx: Context, topic: str = "작도") -> str:
-    """작업 요령 안내. 그리기(작도)나 토목 명령을 쓰기 전에 먼저 한 번 부른다 — 있는 전용 도구로 빨리 끝내기 위해서다.
-    topic: "작도"(단면도 등 새로 그리기, 기본)·"명령"(토목 명령 94개 쓰기)·"조회"(도면 읽기)·"전체"."""
+    """작업 요령 안내. 그리기(작도)나 BC 명령을 쓰기 전에 먼저 한 번 부른다 — 있는 전용 도구로 빨리 끝내기 위해서다.
+    topic: "작도"(단면도 등 새로 그리기, 기본)·"명령"(BC 명령 94개 쓰기)·"조회"(도면 읽기)·"전체"."""
     t = (topic or "작도").strip()
-    if t == "전체":
-        return "\n\n".join(GUIDE.values())
-    if t not in GUIDE:
+    if t != "전체" and t not in GUIDE:
         raise ToolError("topic은 %s·전체 중 하나입니다: %r" % ("·".join(GUIDE), topic))
-    return GUIDE[t]
+    text = "\n\n".join(GUIDE.values()) if t == "전체" else GUIDE[t]
+    return await _update_line() + text
+
+
+async def _update_line() -> str:
+    """새 버전이 있으면 guide 첫 줄 안내(하루 한 번 확인, 최대 3초, 확인 못 하면 빈 문자열). BCHELP 창에서 끈다."""
+    _skills()  # skills 패키지 경로
+    from skills.common import update
+    try:
+        msg = await asyncio.to_thread(update.notice)
+    except Exception as e:  # noqa: BLE001 — 알림은 덤이다. 설정 파일을 못 읽어도 안내는 그대로 돌려준다
+        logger.info("새 버전 확인 건너뜀: %s", e)
+        return ""
+    return ("[알림] %s 지금 작업을 마친 뒤 사용자에게 알리고 업데이트를 제안하십시오(자동 설치하지 않음).\n\n" % msg) if msg else ""
 
 
 @mcp.tool(structured_output=False)
@@ -289,15 +302,17 @@ async def set_active_layer(ctx: Context, name: str) -> str:
 
 @mcp.tool(structured_output=False)
 async def get_entities(ctx: Context, layer: str = "", entity_type: str = "", limit: int = 100, offset: int = 0,
-                       bbox_x1: float = 0, bbox_y1: float = 0, bbox_x2: float = 0, bbox_y2: float = 0) -> str:
-    """모형 공간 개체 조회(LISP ssget, 큰 도면도 빠름).
+                       bbox_x1: float = 0, bbox_y1: float = 0, bbox_x2: float = 0, bbox_y2: float = 0,
+                       layout: str = "") -> str:
+    """개체 조회(LISP ssget, 큰 도면도 빠름). layout: 비우면 모형 공간(기본), 배치 이름(예 "Layout1")이면 그 배치,
+    "*"면 모형·배치 전부(배치 개체에는 layout 필드가 붙는다 — 모형 좌표와 종이 좌표를 섞지 말 것).
     entity_type: DXF명(LINE/TEXT/MTEXT/LWPOLYLINE/INSERT…) 또는 ActiveX명, 쉼표로 여러 개.
     layer: 정확히 일치(와일드카드 문자 자동 이스케이프). bbox_*: 영역(좌하·우상), 모두 0이면 안 씀 —
     개체 외곽이 영역과 겹치면 포함(화면 밖·꺼진 레이어도 잡음, 비스듬한 개체는 넉넉히 잡힐 수 있음).
     반환 {count, returned, truncated, entities:[{index, handle, type, layer, color, visible, bbox_min, bbox_max,
-    insertion_point, true_color?, text?}], next_offset(잘렸을 때)}. 좌표는 소수 8자리."""
+    insertion_point, true_color?, layout?, text?}], next_offset(잘렸을 때)}. 좌표는 소수 8자리."""
     bbox = V.bbox_args(bbox_x1, bbox_y1, bbox_x2, bbox_y2)
-    return await _run(ctl.get_entities, layer, entity_type, limit, offset, bbox, timeout=150)
+    return await _run(ctl.get_entities, layer, entity_type, limit, offset, bbox, layout, timeout=150)
 
 
 @mcp.tool(structured_output=False)
@@ -307,16 +322,18 @@ async def get_entity(ctx: Context, handle: str) -> str:
 
 
 @mcp.tool(structured_output=False)
-async def count_entities(ctx: Context, layer: str = "", entity_type: str = "") -> str:
-    """개체 수 {total(모형 전체), matched(조건 일치)}."""
-    return await _run(ctl.count_entities, layer, entity_type)
+async def count_entities(ctx: Context, layer: str = "", entity_type: str = "", layout: str = "") -> str:
+    """개체 수 {total(그 공간 전체), matched(조건 일치)}. layout: 비우면 모형, 배치 이름이면 그 배치, "*"면 전부."""
+    return await _run(ctl.count_entities, layer, entity_type, layout)
 
 
 @mcp.tool(structured_output=False)
 async def ssget_query(ctx: Context, entity_type: str = "", layer: str = "", text_like: str = "", color: int = -1,
-                      area: str = "", limit: int = 2000, offset: int = 0, fields: str = "full") -> str:
+                      area: str = "", limit: int = 2000, offset: int = 0, fields: str = "full",
+                      layout: str = "") -> str:
     """범용 조회. text_like: 문자 와일드카드(예 "*교량*", "No.*"). color: ACI. area: "x1,y1,x2,y2"(화면 밖 포함).
     fields="handles"면 {index, handle, type, layer}만 — 핸들만 필요한 '골라서 고치기'에 빠르고 작다.
+    layout: 비우면 모형(기본), 배치 이름이면 그 배치, "*"면 전부(get_entities와 같다).
     반환 모양은 get_entities와 같다. 반환 handle을 entget_by_handles·modify_entity·delete_entities 등에 넘긴다."""
     area_v = None
     if area:
@@ -326,7 +343,7 @@ async def ssget_query(ctx: Context, entity_type: str = "", layer: str = "", text
         # 글자로 직접 준 영역은 "0,0,0,0"도 원점 한 점 영역이다(get_entities의 숫자 기본값 0 = 영역 없음과 다르다)
         x1, y1, x2, y2 = parts
         area_v = (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
-    return await _run(ctl.ssget_query, entity_type, layer, text_like, color, area_v, limit, offset, fields,
+    return await _run(ctl.ssget_query, entity_type, layer, text_like, color, area_v, limit, offset, fields, layout,
                       timeout=150)
 
 
@@ -343,16 +360,22 @@ async def entget_by_handles(ctx: Context, handles: Union[str, List[str]]) -> str
 
 @mcp.tool(structured_output=False)
 async def find_text(ctx: Context, keyword: str, zoom: bool = False, margin: float = 200.0,
-                    limit: int = 2000, offset: int = 0) -> str:
+                    limit: int = 2000, offset: int = 0, layout: str = "") -> str:
     """TEXT·MTEXT에서 keyword가 글자 그대로 들어간 것 찾기(대소문자 무시, @·,·[ 같은 글자도 그대로). 와일드카드는 ssget_query(text_like). zoom=True면 이 페이지 첫 결과로 줌.
-    반환 {found, returned, truncated, results:[{x, y, handle, layer, text}], next_offset}."""
+    layout: 비우면 모형(기본), 배치 이름이면 그 배치, "*"면 전부(배치 결과에는 layout). zoom은 첫 결과가 지금 탭의 공간일 때만.
+    반환 {found, returned, truncated, results:[{x, y, handle, layer, layout?, text}], active_layout, next_offset}."""
     if zoom and not margin > 0:
         raise ToolError("zoom=True면 margin은 0보다 커야 합니다")
-    res = json.loads(await _run(ctl.find_text, keyword, limit, offset, timeout=150))
+    res = json.loads(await _run(ctl.find_text, keyword, limit, offset, layout, timeout=150))
     if zoom and res.get("results"):
         f = res["results"][0]
-        res["zoom"] = json.loads(await _run(ctl.zoom_window, f["x"] - margin, f["y"] - margin,
-                                            f["x"] + margin, f["y"] + margin))
+        where = f.get("layout", "Model")
+        if where.casefold() != str(res.get("active_layout", "Model")).casefold():
+            # 다른 공간의 좌표로 줌하면 지금 탭의 엉뚱한 곳으로 간다 — 탭은 사람이 바꾸게 둔다
+            res["zoom"] = {"skipped": "첫 결과가 '%s'에 있고 지금 탭은 '%s'라 줌하지 않았습니다." % (where, res.get("active_layout"))}
+        else:
+            res["zoom"] = json.loads(await _run(ctl.zoom_window, f["x"] - margin, f["y"] - margin,
+                                                f["x"] + margin, f["y"] + margin))
     return _ok(res)
 
 
@@ -412,74 +435,75 @@ async def find_text_overlaps(ctx: Context, layer: str = "", x1: float = None, y1
 @mcp.tool(structured_output=False)
 async def create_line(ctx: Context, start_x: float, start_y: float, end_x: float, end_y: float,
                       layer: str = "", color: int = -1, true_color: str = "", linetype: str = "",
-                      lineweight: int = -1) -> str:
+                      lineweight: int = -1, layout: str = "") -> str:
     """선 그리기(COM, 객체 스냅 영향 없음). 공통: layer(없으면 생성, 현재 레이어 안 바꿈), color(ACI, -1=현재값),
-    true_color("R,G,B"), linetype(없으면 불러옴), lineweight(1/100mm, -1=그대로)."""
+    true_color("R,G,B"), linetype(없으면 불러옴), lineweight(1/100mm, -1=그대로),
+    layout(비우면 모형 공간, 배치 이름이면 그 배치의 종이 공간에 그림 — 다른 작도 도구도 같다)."""
     return await _run(ctl.create_line, [start_x, start_y], [end_x, end_y],
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
 async def create_polyline(ctx: Context, points: Union[str, List[List[float]]], closed: bool = False,
                           layer: str = "", color: int = -1, true_color: str = "", linetype: str = "",
-                          lineweight: int = -1) -> str:
+                          lineweight: int = -1, layout: str = "") -> str:
     """경량 폴리선(LWPOLYLINE). points: [[x1,y1],[x2,y2],...] (JSON 문자열 또는 배열)."""
-    return await _run(ctl.create_polyline, points, closed, **_style(layer, color, true_color, linetype, lineweight))
+    return await _run(ctl.create_polyline, points, closed, **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
 async def create_rectangle(ctx: Context, x1: float, y1: float, x2: float, y2: float,
                            layer: str = "", color: int = -1, true_color: str = "", linetype: str = "",
-                           lineweight: int = -1) -> str:
+                           lineweight: int = -1, layout: str = "") -> str:
     """사각형(닫힌 LWPOLYLINE, 꼭짓점 4개). 두 대각 점."""
-    return await _run(ctl.create_rectangle, x1, y1, x2, y2, **_style(layer, color, true_color, linetype, lineweight))
+    return await _run(ctl.create_rectangle, x1, y1, x2, y2, **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
 async def create_circle(ctx: Context, center_x: float, center_y: float, radius: float,
                         layer: str = "", color: int = -1, true_color: str = "", linetype: str = "",
-                        lineweight: int = -1) -> str:
+                        lineweight: int = -1, layout: str = "") -> str:
     """원."""
     return await _run(ctl.create_circle, [center_x, center_y], radius,
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
 async def create_arc(ctx: Context, center_x: float, center_y: float, radius: float, start_angle: float,
                      end_angle: float, layer: str = "", color: int = -1, true_color: str = "", linetype: str = "",
-                     lineweight: int = -1) -> str:
+                     lineweight: int = -1, layout: str = "") -> str:
     """호. 각도는 도, 시작각에서 반시계로 끝각까지."""
     return await _run(ctl.create_arc, [center_x, center_y], radius, start_angle, end_angle,
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
 async def create_ellipse(ctx: Context, center_x: float, center_y: float, major_axis: float, minor_axis: float,
                          rotation: float = 0.0, layer: str = "", color: int = -1, true_color: str = "",
-                         linetype: str = "", lineweight: int = -1) -> str:
+                         linetype: str = "", lineweight: int = -1, layout: str = "") -> str:
     """타원. major_axis·minor_axis는 반지름 길이, rotation은 장축 방향(도)."""
     return await _run(ctl.create_ellipse, [center_x, center_y], major_axis, minor_axis, rotation,
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
 async def create_text(ctx: Context, text: str, x: float, y: float, height: float = 2.5, rotation: float = 0.0,
                       layer: str = "", color: int = -1, true_color: str = "", style: str = "",
-                      linetype: str = "", lineweight: int = -1) -> str:
+                      linetype: str = "", lineweight: int = -1, layout: str = "") -> str:
     """한 줄 문자(TEXT). 삽입점 x,y, 높이, 회전(도). 한글·±°² 값은 그대로 들어간다.
     style: 문자 스타일 이름(비우면 현재 스타일). 한글이 화면에 ?로 보이면 get_text_styles에서
     korean_capable=true인 스타일을 골라 준다(새 도면 Standard=txt.shx는 한글 글꼴이 없다)."""
     return await _run(ctl.create_text, text, x, y, height, rotation, style,
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
 async def create_mtext(ctx: Context, text: str, x: float, y: float, height: float = 2.5, width: float = 0.0,
                        layer: str = "", color: int = -1, true_color: str = "", style: str = "",
-                       linetype: str = "", lineweight: int = -1) -> str:
+                       linetype: str = "", lineweight: int = -1, layout: str = "") -> str:
     """여러 줄 문자(MTEXT). width=0이면 줄바꿈 없음. 줄 나눔은 \\P. style은 create_text와 같다."""
     return await _run(ctl.create_mtext, text, x, y, height, width, style,
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
@@ -501,14 +525,14 @@ async def set_text_style(ctx: Context, name: str, typeface: str = "", font_file:
 async def create_hatch(ctx: Context, points: Union[str, List[List[float]], None] = None, pattern: str = "SOLID",
                        scale: float = 1.0, boundary_handles: Union[str, List[str], None] = None,
                        layer: str = "", color: int = -1, true_color: str = "",
-                       linetype: str = "", lineweight: int = -1) -> str:
+                       linetype: str = "", lineweight: int = -1, layout: str = "") -> str:
     """해치. 둘 중 하나:
     - points: 경계 꼭짓점 3개 이상(닫힌 경계 폴리선도 함께 만들어 boundary_handle로 준다).
     - boundary_handles: 이미 그린 닫힌 경계(폴리선·원·타원·스플라인) 핸들 배열. 첫 핸들이 바깥, 나머지는 구멍.
       경계를 새로 만들지 않으므로 선이 겹치지 않는다.
     scale은 무늬 축척(도면 축척에 맞춰 키운다. 1/50 도면이면 대략 0.05~0.1 근처부터 capture_view로 확인)."""
     return await _run(ctl.create_hatch, points, pattern, scale, boundary_handles,
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
@@ -516,7 +540,7 @@ async def create_dimension(ctx: Context, start_x: float, start_y: float, end_x: 
                            text_x: Optional[float] = None, text_y: Optional[float] = None,
                            text_height: float = 0.0, kind: str = "aligned", angle: float = 0.0,
                            scale: float = 0.0, layer: str = "", color: int = -1, true_color: str = "",
-                           linetype: str = "", lineweight: int = -1) -> str:
+                           linetype: str = "", lineweight: int = -1, layout: str = "") -> str:
     """치수. kind: aligned(두 점을 잇는 정렬 치수, 기본)·horizontal(수평)·vertical(수직)·rotated(angle 도 방향).
     text_x/y는 치수선(문자) 위치 — 안 주면 수평은 위, 수직은 왼쪽, 정렬은 선분 왼편에 자동 배치.
     하나만 주면(수평 치수에 text_y만 등) 나머지는 두 점의 가운데.
@@ -524,19 +548,19 @@ async def create_dimension(ctx: Context, start_x: float, start_y: float, end_x: 
     mm 단위에 1/50이면 50. 0이면 치수 스타일 그대로. text_height는 문자만 따로 정할 때."""
     tp = [text_x, text_y] if text_x is not None or text_y is not None else None
     return await _run(ctl.create_dimension, [start_x, start_y], [end_x, end_y], tp, text_height, kind, angle, scale,
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
 async def create_leader(ctx: Context, points: Union[str, List[List[float]]], text: str, text_height: float = 2.5,
                         arrow_size: float = 0.0, style: str = "", layer: str = "", color: int = -1,
-                        true_color: str = "", linetype: str = "", lineweight: int = -1) -> str:
+                        true_color: str = "", linetype: str = "", lineweight: int = -1, layout: str = "") -> str:
     """지시선 + 문자(MLEADER, 철근·재료 표기 등). points: 첫 점이 화살표 끝, 마지막 점 쪽에 문자가 붙는다(2점 이상).
     마지막 선분이 왼쪽으로 가면 문자는 마지막 점 왼쪽, 아니면 오른쪽에 붙는다.
     text_height는 도면 단위 문자 높이, arrow_size 0이면 문자 높이와 같게. style은 create_text와 같다
     (한글은 korean_capable 스타일). 여러 줄은 \\P."""
     return await _run(ctl.create_leader, points, text, text_height, arrow_size, style,
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
@@ -566,10 +590,10 @@ async def create_block(ctx: Context, name: str, base_x: float = 0.0, base_y: flo
 @mcp.tool(structured_output=False)
 async def insert_block(ctx: Context, name: str, x: float, y: float, x_scale: float = 1.0, y_scale: float = 1.0,
                        z_scale: float = 1.0, rotation: float = 0.0, layer: str = "", color: int = -1,
-                       true_color: str = "", linetype: str = "", lineweight: int = -1) -> str:
+                       true_color: str = "", linetype: str = "", lineweight: int = -1, layout: str = "") -> str:
     """블록 참조 삽입. rotation은 도. name에 .dwg 경로를 주면 그 파일을 블록으로 불러 넣는다."""
     return await _run(ctl.insert_block, name, x, y, x_scale, y_scale, z_scale, rotation,
-                      **_style(layer, color, true_color, linetype, lineweight))
+                      **_style(layer, color, true_color, linetype, lineweight, layout))
 
 
 @mcp.tool(structured_output=False)
@@ -706,7 +730,7 @@ async def run_lisp(ctx: Context, code: str, timeout_s: float = 60.0) -> str:
     """AutoLISP를 실행하고 결과 줄을 받는다(UNDO 한 묶음).
 
     ※ 먼저 전용 도구를 쓴다: 선·폴리선·원·문자·치수·해치·지시선·블록은 create_* 도구, 한글 글꼴은 set_text_style,
-      토목 작업은 skill_list의 명령이 이미 있다. run_lisp는 전용 도구로 안 되는 조회·편집에만 쓴다(guide 참고).
+      토목·도면 작업은 skill_list의 BC 명령이 이미 있다. run_lisp는 전용 도구로 안 되는 조회·편집에만 쓴다(guide 참고).
     - 결과는 이미 열린 파일 핸들 _fp에 (write-line "..." _fp). _fp·_d(탭 문자)는 예약 — open/close/재정의 금지.
     - 길이 제한 없음(파일로 넘겨 eval), 한글·기호 그대로. 좌표는 (rtos x 2 8) 권장.
     - ssget 레이어 필터의 #·.·- 등은 역따옴표 이스케이프: (cons 8 "0.`#축제"). 영역 선택 "_C"/"_W"는 화면 밖을
@@ -778,7 +802,7 @@ async def build_drawing_background(ctx: Context, code: str, output_path: str, ba
     켜져 있는 AutoCAD 화면·도면은 건드리지 않는다(AutoCAD가 꺼져 있어도 되고, 사용자가 작업 중이어도 된다).
     사용자가 "백그라운드로", "화면 건드리지 말고 파일로 만들어 줘"라고 하거나, 큰 그림·새 도면을 만들 때 쓴다.
     code: LISP 본문. 결과는 (write-line "..." _fp)로 쓰면 lines로 돌아온다. entmake/vla-* 외에 (command ...)도 쓸 수 있다
-    (객체 스냅 꺼짐). use_skills면 토목 명령 함수(bc:*)를 먼저 불러 둔다.
+    (객체 스냅 꺼짐). use_skills면 BC 명령 함수(bc:*)를 먼저 불러 둔다.
     output_path: 저장할 .dwg 전체 경로(2018 형식). 이미 있으면 overwrite=true일 때만 덮어쓴다.
     base_drawing: 이 도면을 열어 시작(원본은 바꾸지 않고 결과는 output_path에만 저장).
     preview(기본 true): 저장 뒤 모형 공간 전체를 PNG(흰 배경, 1600×1280)로 출력해 preview 경로로 준다 —
@@ -795,7 +819,7 @@ async def build_drawing_background(ctx: Context, code: str, output_path: str, ba
         raise ToolError(str(e))
 
 
-# ---------------------------------------------------------------- 스킬(토목·좌표·다중 플롯 명령)
+# ---------------------------------------------------------------- BC 명령(전용 명령)
 
 def _skills():
     """skills 패키지(패키지 최상위 폴더 기준). 처음 쓸 때만 불러온다."""
@@ -808,8 +832,8 @@ def _skills():
 
 @mcp.tool(structured_output=False)
 async def skill_list(ctx: Context, command: str = "") -> str:
-    """AutoCAD 스킬 명령 94개 목록(EL·지형·종단·횡단·좌표·선형·측점·사면·하천 횡단·수량·표·정리·수정·레이어·도면 불러오기·계산기·다중 플롯·도곽 문자 엑셀).
-    command를 비우면 전체 요약: command, title, group, kind(lisp=AutoCAD에서 바로 찍는 명령 / window=창), desc, run_args.
+    """BC 명령(AutoCAD에서 바로 쓰는 전용 명령) 94개 목록 — 큰 분류 토목·도면 작업.
+    command를 비우면 전체 요약: command, title, category(토목·도면 작업), group, kind(lisp=AutoCAD에서 바로 찍는 명령 / window=창), desc, run_args.
     command를 주면 그 명령 하나를 자세히: settings(skill_run의 settings에 넣을 수 있는 키·기본값·선택지), settings_file.
     skill_run 전에 그 명령을 command로 한 번 불러 설정 키 이름을 확인한다(명령마다 '간격'·'측점간격'처럼 다르다).
     사람이 쓰는 기본 방식은 AutoCAD에서 명령을 직접 치거나 skill_open으로 창을 띄우는 것이다."""
@@ -824,7 +848,7 @@ async def skill_list(ctx: Context, command: str = "") -> str:
 
 @mcp.tool(structured_output=False)
 async def skill_open(ctx: Context, command: str) -> str:
-    """스킬 창을 띄운다(사람이 쓰는 기본 방식). window 명령은 그 창, lisp 명령은 설정 창.
+    """BC 명령 창을 띄운다(사람이 쓰는 기본 방식). window 명령은 그 창, lisp 명령은 설정 창.
     COM을 쓰지 않고 별도 프로세스로 띄우므로 바로 돌아온다."""
     try:
         return _ok(_skills().open_window(command))
@@ -834,7 +858,7 @@ async def skill_open(ctx: Context, command: str) -> str:
 
 @mcp.tool(structured_output=False)
 async def skill_run(ctx: Context, command: str, args: str = "{}", timeout: float = 120.0) -> str:
-    """스킬 명령을 창 없이 값만으로 실행한다. args는 JSON 객체 문자열.
+    """BC 명령을 창 없이 값만으로 실행한다. args는 JSON 객체 문자열.
     공통: settings {설정키: 값} — 저장된 설정 파일 위에 덮어 쓴다(키는 registry 설정 항목, skill_list 참고).
     명령별 인자는 skill_list의 run_args. 예) FE: {"base_point":[0,0],"base_el":100,"points":[[5,2.5]]}
     한 호출이 UNDO 한 묶음. 반환 모양은 명령마다 다르다: 값 명령(FE·DCP 등)은 results(명령별 (값 핸들목록)),

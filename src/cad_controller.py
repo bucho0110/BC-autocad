@@ -366,7 +366,7 @@ def fit_page(rows: list, count: int, offset: int, key: str) -> dict:
 
 # 개체 한 줄(탭 구분) 열 순서 — LISP bcq:row와 _parse_rows가 같이 쓴다.
 ROW_COLUMNS = ("index", "handle", "type", "layer", "color", "visible", "x1", "y1", "x2", "y2", "ipx", "ipy",
-               "truecolor", "text")
+               "truecolor", "layout", "text")
 TOTAL_TAG = "TOTAL"  # 조회 본문이 마지막에 쓰는 전체 개수 줄: TOTAL<탭>n
 
 # 본문 앞에 붙는 조회 함수들(매 호출 다시 정의 — 재정의 허용).
@@ -405,7 +405,7 @@ _BBOX_DEFUN = (
     "  (if bb (bcq:num (nth 0 bb)) \"\") (if bb (bcq:num (nth 1 bb)) \"\")"
     "  (if bb (bcq:num (nth 2 bb)) \"\") (if bb (bcq:num (nth 3 bb)) \"\")"
     "  (if (and ip (listp ip)) (bcq:num (car ip)) \"\") (if (and ip (listp ip)) (bcq:num (cadr ip)) \"\")"
-    "  (if tc (itoa tc) \"\") (bcq:text e))))"
+    "  (if tc (itoa tc) \"\") (cdr (assoc 410 e)) (bcq:text e))))"
     "(defun bcq:tabs (lst / out) (setq out (car lst))"
     " (foreach x (cdr lst) (setq out (strcat out _d (if x x \"\")))) out)"
 )
@@ -440,6 +440,8 @@ def _parse_rows(lines: List[str]) -> tuple:
         if v["truecolor"]:
             t = int(v["truecolor"])
             row["true_color"] = "%d,%d,%d" % (t >> 16 & 255, t >> 8 & 255, t & 255)
+        if v["layout"] and v["layout"].casefold() != "model":  # 배치(종이 공간) 개체만 공간 이름을 붙인다
+            row["layout"] = v["layout"]
         if v["text"] or v["type"] in ("TEXT", "MTEXT", "ATTDEF"):
             row["text"] = v["text"]
         out.append(row)
@@ -806,11 +808,44 @@ class AcadControl:
                                  "합니다: %r" % (_LINEWEIGHTS, lineweight))
             ent.Lineweight = lw
 
+    @staticmethod
+    def _is_model(layout) -> bool:
+        return (layout or "").strip().casefold() in ("", "model", "모형")
+
+    def _layout_name(self, d, layout: str) -> str:
+        """배치 이름(대소문자 무시) → 도면의 실제 배치 이름. 없으면 있는 배치 이름을 알려 준다."""
+        want = layout.strip().casefold()
+        names = []
+        for i in range(d.Layouts.Count):
+            n = d.Layouts.Item(i).Name
+            if n.casefold() == want:
+                return n
+            if n.casefold() != "model":
+                names.append(n)
+        raise ValueError("배치가 없습니다: %r (있는 배치: %s, 모형은 \"Model\")" % (layout, ", ".join(names) or "없음"))
+
+    def _space_block(self, d, layout=""):
+        """작도할 공간: 비우거나 "Model"이면 모형 공간(기본), 배치 이름이면 그 배치의 종이 공간."""
+        if self._is_model(layout):
+            return d.ModelSpace
+        return d.Layouts.Item(self._layout_name(d, layout)).Block
+
+    def _space_filter(self, layout="") -> List[str]:
+        """조회 공간 ssget 필터: 기본 모형(67=0), "*"는 전체(필터 없음), 배치 이름은 410(배치마다 따로 고를 수 있다)."""
+        if self._is_model(layout):
+            return ["(cons 67 0)"]
+        if layout.strip() == "*":
+            return []
+        return ['(cons 410 "%s")' % V.lisp_str(V.wild_escape(self._layout_name(self.doc, layout)))]
+
     def _create(self, what: str, make, style: dict, extra=None) -> dict:
-        """개체 하나를 만들고 스타일을 입힌다. 도중에 실패하면 이번에 만든 개체만 지우고 원인을 올린다."""
+        """개체 하나를 만들고 스타일을 입힌다. 도중에 실패하면 이번에 만든 개체만 지우고 원인을 올린다.
+        style의 layout(배치 이름)을 주면 그 배치의 종이 공간에 그린다(기본 모형 공간)."""
+        style = dict(style)
+        layout = style.pop("layout", "")
         d = self._require_idle()
         with self._undo_group(d):
-            ms = d.ModelSpace
+            ms = self._space_block(d, layout)
             ent = make(ms)
             try:
                 if extra:
@@ -824,8 +859,11 @@ class AcadControl:
                 except Exception as e2:
                     cleanup = "삭제 실패: %s" % e2
                 raise RuntimeError("%s 생성 중 속성 지정 실패: %s (만든 개체 %s)" % (what, e, cleanup)) from e
-            return {"handle": ent.Handle, "type": _OBJ_TO_DXF.get(ent.ObjectName, ent.ObjectName),
-                    "drawing": d.Name}
+            out = {"handle": ent.Handle, "type": _OBJ_TO_DXF.get(ent.ObjectName, ent.ObjectName),
+                   "drawing": d.Name}
+            if not self._is_model(layout):
+                out["layout"] = self._layout_name(d, layout)
+            return out
 
     # ------------------------------------------------------------ 레이어
 
@@ -906,8 +944,8 @@ class AcadControl:
     # ------------------------------------------------------------ 조회 (LISP ssget)
 
     @staticmethod
-    def _filter(entity_type="", layer="", text_like="", color=None) -> str:
-        f = ["(cons 67 0)"]  # 모형 공간만
+    def _filter(entity_type="", layer="", text_like="", color=None, space=("(cons 67 0)",)) -> str:
+        f = list(space)  # 기본 모형 공간만(_space_filter)
         if entity_type:
             f.append('(cons 0 "%s")' % V.lisp_str(V.dxf_type(entity_type)))
         if layer:
@@ -932,7 +970,7 @@ class AcadControl:
             keep = "T"
         if handles_only:
             emit = ('(write-line (strcat (itoa _i) _d (cdr (assoc 5 _e)) _d (cdr (assoc 0 _e)) _d'
-                    ' (cdr (assoc 8 _e))) _fp)')
+                    ' (cdr (assoc 8 _e)) _d (cdr (assoc 410 _e))) _fp)')
         else:
             emit = _ENT_EMIT
         body = (
@@ -951,26 +989,30 @@ class AcadControl:
             count = _total_line(lines) or 0
             rows = []
             for ln in lines:
-                c = ln.split("\t", 3)
-                if len(c) == 4 and c[0] != TOTAL_TAG:
-                    rows.append({"index": int(c[0]), "handle": c[1], "type": c[2], "layer": c[3]})
+                c = ln.split("\t", 4)
+                if len(c) >= 4 and c[0] != TOTAL_TAG:
+                    row = {"index": int(c[0]), "handle": c[1], "type": c[2], "layer": c[3]}
+                    if len(c) > 4 and c[4] and c[4].casefold() != "model":
+                        row["layout"] = c[4]
+                    rows.append(row)
         else:
             count, rows = _parse_rows(lines)
         return fit_page(rows, count, offset, "entities")
 
-    def get_entities(self, layer="", entity_type="", limit=100, offset=0, bbox=None) -> dict:
-        return self._query(self._filter(entity_type, layer), bbox, limit, offset)
+    def get_entities(self, layer="", entity_type="", limit=100, offset=0, bbox=None, layout="") -> dict:
+        return self._query(self._filter(entity_type, layer, space=self._space_filter(layout)), bbox, limit, offset)
 
     def ssget_query(self, entity_type="", layer="", text_like="", color=-1, area=None,
-                    limit=2000, offset=0, fields="full") -> dict:
+                    limit=2000, offset=0, fields="full", layout="") -> dict:
         if fields not in ("full", "handles"):
             raise ValueError('fields는 "full" 또는 "handles"여야 합니다: %r' % fields)
-        return self._query(self._filter(entity_type, layer, text_like, color), area, limit, offset,
-                           handles_only=fields == "handles")
+        return self._query(self._filter(entity_type, layer, text_like, color, self._space_filter(layout)), area,
+                           limit, offset, handles_only=fields == "handles")
 
-    def count_entities(self, layer="", entity_type="") -> dict:
-        flist = self._filter(entity_type, layer)
-        body = ('(setq _t (ssget "_X" (list (cons 67 0))) _m (ssget "_X" ' + flist + '))'
+    def count_entities(self, layer="", entity_type="", layout="") -> dict:
+        space = self._space_filter(layout)
+        flist = self._filter(entity_type, layer, space=space)
+        body = ('(setq _t (ssget "_X" (list ' + " ".join(space) + ')) _m (ssget "_X" ' + flist + '))'
                 '(write-line (strcat (if _t (itoa (sslength _t)) "0") "," (if _m (itoa (sslength _m)) "0")) _fp)')
         line = self.lisp(body)
         total, matched = (int(x) for x in line[0].split(",", 1))
@@ -993,7 +1035,7 @@ class AcadControl:
         page["missing"] = len(handles) - len(rows) if not page["truncated"] else None
         return page
 
-    def find_text(self, keyword: str, limit=2000, offset=0) -> dict:
+    def find_text(self, keyword: str, limit=2000, offset=0, layout="") -> dict:
         if not keyword:
             raise ValueError("keyword가 비어 있습니다")
         limit, offset = int(limit), int(offset)
@@ -1004,14 +1046,14 @@ class AcadControl:
         # keyword는 글자 그대로 찾는다(D16@200, 1,234, [좌안]) — 와일드카드 조회는 ssget_query(text_like)
         pat = V.lisp_str("*" + V.wild_escape(keyword) + "*")
         body = (
-            '(setq _ss (ssget "_X" (list (cons 67 0) (cons 0 "TEXT,MTEXT"))) _m 0 _c 0)'
+            '(setq _ss (ssget "_X" (list ' + " ".join(self._space_filter(layout)) + ' (cons 0 "TEXT,MTEXT"))) _m 0 _c 0)'
             "(if _ss (progn (setq _n (sslength _ss) _k 0)"
             "  (while (< _k _n)"
             "   (setq _e (entget (ssname _ss _k)) _k (1+ _k) _tx (bcq:text _e))"
             '   (if (wcmatch (strcase _tx) (strcase "' + pat + '"))'
             "    (progn (if (and (>= _m %d) (< _c %d) (setq _pt (cdr (assoc 10 _e))))" % (offset, limit) +
             "      (progn (write-line (strcat (rtos (car _pt) 2 8) _d (rtos (cadr _pt) 2 8) _d"
-            "        (cdr (assoc 5 _e)) _d (cdr (assoc 8 _e)) _d _tx) _fp) (setq _c (1+ _c))))"
+            "        (cdr (assoc 5 _e)) _d (cdr (assoc 8 _e)) _d (cdr (assoc 410 _e)) _d _tx) _fp) (setq _c (1+ _c))))"
             "     (setq _m (1+ _m)))))))"
             '(write-line (strcat "TOTAL" _d (itoa _m)) _fp)'
         )
@@ -1019,13 +1061,16 @@ class AcadControl:
         count = _total_line(lines) or 0
         results = []
         for ln in lines:
-            p = ln.split("\t", 4)
-            if len(p) < 4 or p[0] == TOTAL_TAG:
+            p = ln.split("\t", 5)
+            if len(p) < 5 or p[0] == TOTAL_TAG:
                 continue
-            results.append({"x": float(p[0]), "y": float(p[1]), "handle": p[2], "layer": p[3],
-                            "text": p[4] if len(p) > 4 else ""})
+            r = {"x": float(p[0]), "y": float(p[1]), "handle": p[2], "layer": p[3], "text": p[5] if len(p) > 5 else ""}
+            if p[4] and p[4].casefold() != "model":
+                r["layout"] = p[4]
+            results.append(r)
         page = fit_page(results, count, offset, "results")
         page["found"] = page.pop("count")
+        page["active_layout"] = self.doc.ActiveLayout.Name  # zoom은 결과 공간이 지금 탭일 때만(server)
         return page
 
     def get_entity(self, handle: str) -> dict:
@@ -1210,7 +1255,9 @@ class AcadControl:
             return out
         try:
             d = self.doc
-            st = d.TextStyles.Item(d.HandleToObject(out["handle"]).StyleName)
+            ob = d.HandleToObject(out["handle"])
+            name = getattr(ob, "StyleName", None) if ob.ObjectName != "AcDbMLeader" else ob.TextStyleName  # 지시선은 문자 스타일 속성 이름이 다르다
+            st = d.TextStyles.Item(name)
             face = ""
             try:
                 face = st.GetFont()[0]
@@ -1265,9 +1312,11 @@ class AcadControl:
             raise ValueError("points(경계 꼭짓점) 또는 boundary_handles(이미 그린 닫힌 경계) 중 하나를 주세요")
         pts = V.json_points(points, "points", 3)
         flat = [c for p in pts for c in p[:2]]
+        style = dict(style)
+        layout = style.pop("layout", "")
         d = self._require_idle()
         with self._undo_group(d):
-            ms = d.ModelSpace
+            ms = self._space_block(d, layout)
             boundary = ms.AddLightWeightPolyline(self._varr(flat))
             boundary.Closed = True
             hatch = None
@@ -1294,12 +1343,14 @@ class AcadControl:
 
     def _hatch_existing(self, handles, pattern, sc, style) -> dict:
         """이미 그린 닫힌 경계(폴리선·원·타원·스플라인)로 해치. 첫 핸들이 바깥 경계, 나머지는 구멍."""
+        style = dict(style)
+        style.pop("layout", "")  # 경계 개체가 있는 공간에 그린다
         d = self._require_idle()
         objs = [self._resolve(d, h) for h in handles]
         with self._undo_group(d):
             hatch = None
             try:
-                hatch = d.ModelSpace.AddHatch(0, pattern, True)
+                hatch = self._owner_space(d, objs[0]).AddHatch(0, pattern, True)
                 for i, o in enumerate(objs):
                     loop = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_DISPATCH, [unwrap(o)])
                     (hatch.AppendInnerLoop if i else hatch.AppendOuterLoop)(loop)
@@ -1316,6 +1367,17 @@ class AcadControl:
                 raise RuntimeError("해치 생성 실패(경계는 닫힌 폴리선·원·타원·스플라인이어야 함, 만든 해치 삭제함): %s"
                                    % e) from e
             return {"handle": hatch.Handle, "type": "HATCH", "boundary_handles": handles, "drawing": d.Name}
+
+    def _owner_space(self, d, obj):
+        """개체가 들어 있는 공간(모형 또는 배치의 종이 공간) — 경계와 다른 공간에 해치를 만들면 COM 오류가 난다."""
+        oid = obj.OwnerID
+        if d.ModelSpace.ObjectID == oid:
+            return d.ModelSpace
+        for i in range(d.Layouts.Count):
+            b = d.Layouts.Item(i).Block
+            if b.ObjectID == oid:
+                return b
+        return d.ModelSpace
 
     _DIM_KINDS = {"aligned": None, "horizontal": 0.0, "vertical": 90.0, "rotated": None}
 
@@ -1393,7 +1455,7 @@ class AcadControl:
                 ent.SetLeaderLineVertices(0, self._varr(flat))  # 꺾임 방향을 바꾼 뒤 문자 위치를 다시 잡게 한다
         out = self._create("지시선", make, style, extra)
         out["content"] = text
-        return out
+        return self._font_warning(out, text)
 
     # ------------------------------------------------------------ 블록
 
@@ -1740,8 +1802,8 @@ class AcadControl:
             "(defun bcq:seg (x1 y1 x2 y2 / before e ed)"
             " (if _ok (progn"
             "  (setq before (entlast))"
-            "  (entmake (list (quote (0 . \"LINE\")) _spc (cons 8 _lay) (quote (62 . 256)) (quote (6 . \"ByLayer\"))"
-            "                 (quote (370 . -1)) (list 10 x1 y1 0.0) (list 11 x2 y2 0.0)))"
+            "  (entmake (append (list (quote (0 . \"LINE\"))) _spc (list (cons 8 _lay) (quote (62 . 256))"
+            "                 (quote (6 . \"ByLayer\")) (quote (370 . -1)) (list 10 x1 y1 0.0) (list 11 x2 y2 0.0))))"
             "  (setq e (entlast))"
             "  (cond ((or (null e) (equal e before)) (setq _ok nil _why \"선이 만들어지지 않음\"))"
             "        (T (setq _cr (cons e _cr) ed (entget e))"
@@ -1752,8 +1814,10 @@ class AcadControl:
             "(setq _cr nil _ok T _why \"\" _base (handent \"" + V.lisp_str(h) + "\"))"
             "(cond"
             " ((not (and _base (entget _base))) (write-line (strcat \"UNDONE\" _d \"기준 핸들 없음\" _d \"0\") _fp))"
-            # 기준 개체와 같은 공간(배치 탭이 켜져 있어도 모형 공간 개체 옆에 그린다)
-            " (T (setq _lay (cdr (assoc 8 (entget _base))) _spc (cons 67 (if (assoc 67 (entget _base)) (cdr (assoc 67 (entget _base))) 0)))"
+            # 기준 개체와 같은 공간(배치 탭이 켜져 있어도 모형 공간 개체 옆에, 배치 개체면 그 배치에 — 67·410 둘 다)
+            " (T (setq _lay (cdr (assoc 8 (entget _base)))"
+            "   _spc (vl-remove nil (list (cons 67 (if (assoc 67 (entget _base)) (cdr (assoc 67 (entget _base))) 0))"
+            "                        (assoc 410 (entget _base)))))"
             "  (foreach _pt (list " + segs + ") (apply (function bcq:seg) _pt))"
             "  (if _ok"
             "   (foreach _e (reverse _cr) (write-line (strcat \"LINE\" _d (cdr (assoc 5 (entget _e)))) _fp))"
@@ -1776,11 +1840,16 @@ class AcadControl:
 
     @staticmethod
     def _fingerprint(d) -> tuple:
-        """모형 공간 개체 수와 마지막 개체 핸들. COM 읽기만 쓴다 — LISP(SendCommand)를 끼우면
-        UNDO와 REDO 사이 사슬이 끊겨 REDO가 아무것도 안 한다(도구 전수 시험에서 확인)."""
+        """(모형 공간 개체 수, 모형 마지막 핸들, 모든 공간(배치 포함)의 (개수, 마지막 핸들)). COM 읽기만 쓴다 —
+        LISP(SendCommand)를 끼우면 UNDO와 REDO 사이 사슬이 끊겨 REDO가 아무것도 안 한다(도구 전수 시험에서 확인)."""
         ms = d.ModelSpace
         n = ms.Count
-        return n, (ms.Item(n - 1).Handle if n else "")
+        sig = []
+        for i in range(d.Layouts.Count):
+            b = d.Layouts.Item(i).Block
+            c = b.Count
+            sig.append((c, b.Item(c - 1).Handle if c else ""))
+        return n, (ms.Item(n - 1).Handle if n else ""), tuple(sig)
 
     def _undo_redo(self, cmd: str, count: int) -> dict:
         d = self._require_idle()
@@ -1789,13 +1858,13 @@ class AcadControl:
             raise RuntimeError("UNDOCTL=%d: UNDO가 꺼져 있어 보내지 않았습니다" % uc)
         if count > 1 and uc & 2:
             raise RuntimeError("UNDOCTL=%d: UNDO가 One 모드라 count>1을 보내지 않았습니다" % uc)
-        n0, h0 = self._fingerprint(d)
+        n0, h0, s0 = self._fingerprint(d)
         v0 = self._view(d)
         d.SendCommand(cmd)
-        n1, h1 = self._fingerprint(d)
+        n1, h1, s1 = self._fingerprint(d)
         v1 = self._view(d)
         out = {"requested": count, "before": {"entities": n0, "last_handle": h0},
-               "after": {"entities": n1, "last_handle": h1}, "changed": (n0, h0) != (n1, h1),
+               "after": {"entities": n1, "last_handle": h1}, "changed": (n0, h0, s0) != (n1, h1, s1),
                "drawing": d.Name}
         view_changed = v0 != v1
         if view_changed:
@@ -1829,6 +1898,7 @@ class AcadControl:
             raise ValueError("code가 비어 있습니다")
         V.check_parens(code)
         V.check_banned(code)
+        V.check_interactive(code)  # 입력 대기 함수·고르는 ssget은 보내기 전에 막는다(MCP는 입력을 줄 수 없다)
         t = max(1.0, min(float(timeout_s), 600.0))
         d = self._require_idle()
         lines = self.lisp(code, timeout_s=t, doc=d)  # LISP 한 번 = UNDO 한 묶음, 읽기만 하면 기록 없음(M24-C)

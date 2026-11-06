@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""스킬 LISP 라이브러리(skills/lisp/*.lsp)를 MCP·창에서 쓸 수 있게 한 줄 파일로 만든다.
+"""BC 명령 LISP 라이브러리(skills/lisp/*.lsp)를 MCP·창에서 쓸 수 있게 한 줄 파일로 만든다.
 
 AutoCAD 명령(FE·XY…)은 시작 시 (load)로 원본 .lsp를 불러 정의된다(install이 만든 bc_autocad.lsp).
 MCP와 창은 (load)를 쓰지 않는다 — 한 줄로 바꾼 사본을 PC별 작업 폴더에 써 두고,
@@ -11,7 +11,7 @@ import hashlib
 import os
 
 from .paths import LISP_DIR, WORK, lisp_path
-from validators import one_line  # src
+from validators import _lisp_tokens, one_line  # src: 한 줄 만들기·괄호 세기가 같은 규칙을 쓴다
 
 # 불러오는 순서(core가 먼저). 목록에 없는 파일은 이름순으로 뒤에 붙는다.
 ORDER = ["bc_core.lsp"]
@@ -31,28 +31,20 @@ class LispSourceError(ValueError):
 
 def split_forms(body: str, limit: int = 100000):
     """그리기 LISP를 맨 바깥 식 경계에서 limit 글자 남짓씩 나눈다. 한 번에 너무 긴 식은 AutoCAD가 끝까지 못 읽는다
-    (실제 하천 도면 292단면 DCEM 1.4MB — END 없음, 실측 2026-10-29). 나눈 조각은 차례로 같은 LISP 세션에서 돈다."""
+    (실제 하천 도면 292단면 DCEM 1.4MB — END 없음, 실측 2026-10-29). 나눈 조각은 차례로 같은 LISP 세션에서 돈다.
+    문자열·주석(; 줄 주석, ;| |; 블록 주석) 안의 괄호는 세지 않는다(MCP의 LISP 읽기 규칙 _lisp_tokens와 같다)."""
     if len(body) <= limit:
         return [body]
-    out, start, depth, i, n, in_str = [], 0, 0, 0, len(body), False
-    while i < n:
-        c = body[i]
-        if in_str:
-            if c == "\\":
-                i += 2
-                continue
-            if c == '"':
-                in_str = False
-        elif c == '"':
-            in_str = True
-        elif c == "(":
+    out, start, depth, pos = [], 0, 0, 0
+    for kind, txt in _lisp_tokens(body):
+        pos += len(txt)
+        if kind == "(":
             depth += 1
-        elif c == ")":
+        elif kind == ")":
             depth -= 1
-            if depth == 0 and i + 1 - start >= limit:
-                out.append(body[start:i + 1])
-                start = i + 1
-        i += 1
+            if depth == 0 and pos - start >= limit:
+                out.append(body[start:pos])
+                start = pos
     if body[start:].strip():
         out.append(body[start:])
     return out
@@ -61,34 +53,21 @@ def split_forms(body: str, limit: int = 100000):
 def check_depth(text: str, name: str):
     """파일 하나의 괄호 깊이: 문자열·주석을 건너뛰고 세어, 음수가 되는 줄과 끝 깊이를 잡는다.
     전체 개수만 맞는 검사는 '여기서 하나 더 닫고 저기서 하나 덜 닫은' 경우를 놓친다 — 그러면
-    한 줄로 합친 라이브러리가 중간에서 끝나 뒤 정의가 조용히 빠진다(실측 2026-10-29)."""
-    depth, line, i, n = 0, 1, 0, len(text)
-    in_str = False
-    while i < n:
-        c = text[i]
-        if c == "\n":
-            line += 1
-        if in_str:
-            if c == "\\":
-                i += 2
-                continue
-            if c == '"':
-                in_str = False
-        elif c == '"':
-            in_str = True
-        elif c == ";":
-            while i < n and text[i] != "\n":
-                i += 1
-            continue
-        elif c == "(":
+    한 줄로 합친 라이브러리가 중간에서 끝나 뒤 정의가 조용히 빠진다(실측 2026-10-29).
+    주석 규칙은 한 줄로 합칠 때 쓰는 one_line(_lisp_tokens)과 같다(; 줄 주석, ;| |; 블록 주석, CR 단독 줄바꿈)."""
+    depth, line = 0, 1
+    for kind, txt in _lisp_tokens(text):
+        if kind == "(":
             depth += 1
-        elif c == ")":
+        elif kind == ")":
             depth -= 1
             if depth < 0:
                 raise LispSourceError("%s %d줄: 닫는 괄호가 남습니다." % (name, line))
-        i += 1
-    if in_str:
-        raise LispSourceError("%s: 문자열이 닫히지 않았습니다." % name)
+        elif kind == "open_str":
+            raise LispSourceError("%s %d줄: 문자열이 닫히지 않았습니다." % (name, line))
+        elif kind == "open_block":
+            raise LispSourceError("%s %d줄: 블록 주석(;| … |;)이 닫히지 않았습니다." % (name, line))
+        line += txt.count("\n") + (txt.count("\r") - txt.count("\r\n"))
     if depth != 0:
         raise LispSourceError("%s: 끝에서 괄호 %d개가 안 닫혔습니다." % (name, depth))
 

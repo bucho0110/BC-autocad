@@ -4,7 +4,7 @@
 켜져 있는 AutoCAD 화면·도면·키보드는 건드리지 않는다(AutoCAD가 꺼져 있어도 된다. 설치만 되어 있으면 된다).
 - LISP 본문을 UTF-8 한 줄 파일로 써 두고, 스크립트(.scr)는 그 파일을 읽어 eval만 한다(한글 그대로).
 - 백그라운드에는 객체 스냅·대화창이 없어 (command ...)도 쓸 수 있다(OSMODE 0으로 시작).
-- 토목 명령 함수(skills/lisp)를 먼저 불러 둘 수 있다(use_skills).
+- BC 명령 함수(skills/lisp)를 먼저 불러 둘 수 있다(use_skills).
 - 끝나면 DWG(기본 2018 형식, save_as로 바꿈)로 저장하고, 결과 파일의 마지막 줄 DONE으로 끝까지 돌았는지 확인한다.
 실측(AutoCAD 2023): 새 도면 작도·저장 약 2.4초, 한글 파일 이름·문자 정상, 스크립트가 끝나면 스스로 종료.
 """
@@ -50,7 +50,7 @@ def _slash(p: str) -> str:
 
 
 def _skills_lib():
-    """토목 명령 함수 묶음(한 줄 파일) 경로. skills 패키지를 처음 쓸 때만 불러온다."""
+    """BC 명령 함수 묶음(한 줄 파일) 경로. skills 패키지를 처음 쓸 때만 불러온다."""
     import sys
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if root not in sys.path:

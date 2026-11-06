@@ -65,6 +65,8 @@ def frames_lisp(frames):
         s.append('(entmake (list (cons 0 "TEXT") (list 10 %f %f 0.0) (cons 40 %f) (cons 1 "%s") (cons 50 %f)))'
                  % (nx, ny, 3 * k, no, a))
         tx, ty = w(305, 37) if mt else w(310, 28)
+        if title is None:  # 도면명 문자는 따로 넣는다
+            continue
         if mt:
             s.append('(entmake (list (cons 0 "MTEXT") (cons 100 "AcDbEntity") (cons 100 "AcDbMText") (list 10 %f %f 0.0)'
                      ' (cons 40 %f) (cons 71 1) (cons 1 "%s") (list 11 %f %f 0.0)))' % (tx, ty, 3 * k, title, math.cos(a), math.sin(a)))
@@ -158,6 +160,47 @@ async def main():
             e = await run("EMTT", registration=REG, rows=rows)
             with open(f13, "rb") as fh:
                 check("EMTT 2013 형식 유지", e["changed"] == 1 and fh.read(6) == b"AC1027", e)
+
+            # 0.7.0 여러 줄: MTEXT 줄바꿈, 영역 안 TEXT 2줄, 서식 있는 MTEXT, 250자 넘는 MTEXT
+            fm = os.path.join(OUT, "tb_lines.dwg")
+            for p in [fm] + glob.glob(os.path.splitext(fm)[0] + ".emtt-*.bak"):
+                os.remove(p) if os.path.exists(p) else None
+            B = chr(92)
+            long1, long2 = "가" * 120 + "나" * 180, "다" * 150 + "라" * 160
+            extra = ('(entmake (list (cons 0 "TEXT") (list 10 1310.0 36.0 0.0) (cons 40 3.0) (cons 1 "상단")))'
+                     '(entmake (list (cons 0 "TEXT") (list 10 4310.0 36.0 0.0) (cons 40 3.0) (cons 1 "윗줄")))'
+                     '(entmake (list (cons 0 "MTEXT") (cons 100 "AcDbEntity") (cons 100 "AcDbMText")'
+                     ' (list 10 3305.0 33.0 0.0) (cons 40 0.1) (cons 71 1) (cons 3 "%s") (cons 1 "%s")))'
+                     % (long1[:200], long1[200:]))
+            background.build(frames_lisp([
+                (0, 0, 1.0, 0, "D-1", "첫줄" + B + B + "P둘째줄", True, "1/1"),
+                (1000, 0, 1.0, 0, "D-2", "하단", False, "1/1"),
+                (2000, 0, 1.0, 0, "D-3", "{" + B + B + "C1;빨강}제목", True, "1/1"),
+                (3000, 0, 1.0, 0, "D-4", None, False, "1/1"),
+                (4000, 0, 1.0, 0, "D-5", "아랫줄", False, "1/1"),
+                (5000, 0, 1.0, 0, "D-6", "윗" + B + "n아래", True, "1/1")]) + extra, fm, preview=False)  # 실제 줄바꿈 글자
+            r = await run("MPTE", registration=REG, files=[fm])
+            got = {row[3]: row[4] for row in r["rows"][1:]}
+            check("MPTE 여러 줄 읽기(MTEXT 줄바꿈·실제 줄바꿈 글자·TEXT 2줄·서식·250자 넘는 MTEXT)",
+                  got == {"D-1": "첫줄\n둘째줄", "D-2": "상단\n하단", "D-3": "빨강제목", "D-4": long1, "D-5": "윗줄\n아랫줄",
+                          "D-6": "윗\n아래"},
+                  got)
+            rows = [list(x) for x in r["rows"]]
+            new = {"D-1": "첫줄\n셋째줄", "D-2": "상단2\n하단", "D-3": "바꿈", "D-4": long2, "D-5": "한 줄로",
+                   "D-6": "윗\n아래"}
+            for row in rows[1:]:
+                row[4] = new[row[3]]
+            e = await run("EMTT", registration=REG, rows=rows)
+            why = {s[2] + ":" + s[3][:8] for s in e["skipped"]}
+            check("EMTT 여러 줄 고치기 3곳, 서식 MTEXT·줄 수 다른 칸은 건너뜀",
+                  e["changed"] == 3 and len(e["skipped"]) == 2 and any("서식" in s[3] for s in e["skipped"])
+                  and any("줄 수" in s[3] for s in e["skipped"]), (e, why))
+            r = await run("MPTE", registration=REG, files=[fm])
+            got = {row[3]: row[4] for row in r["rows"][1:]}
+            check("EMTT 여러 줄 결과 다시 읽기",
+                  got == {"D-1": "첫줄\n셋째줄", "D-2": "상단2\n하단", "D-3": "빨강제목", "D-4": long2, "D-5": "윗줄\n아랫줄",
+                          "D-6": "윗\n아래"},
+                  got)
 
             # 다른 파일만 다루면 AutoCAD 화면 없이도 돈다(지금 도면을 못 얻는 상황을 흉내)
             class NoAcad:

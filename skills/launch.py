@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""스킬 창 실행기: pythonw launch.py <명령>
+"""BC 명령 창 실행기: pythonw launch.py <명령>
 
 AutoCAD 명령(bc_autocad.lsp의 startapp)과 MCP(open_skill)가 이 파일로 창을 띄운다.
 - 바로 찍는 명령(kind=lisp): 설정 창
@@ -44,6 +44,14 @@ class HelpWindow(ui.BaseWindow):
                   relief="flat").pack(side="right", padx=4)
         tk.Button(top, text="모두 활성화 (단축 이름 포함)", command=self.all_on, bg="#3E5879", fg="#FFFFFF",
                   relief="flat").pack(side="right", padx=4)
+        # 새 버전 알림: 한 줄 + 끄기/켜기 버튼. 확인(하루 한 번, 최대 3초)은 창을 막지 않게 따로 돌린다
+        upd = tk.Frame(self, bg=ui.BG)
+        upd.pack(fill="x", padx=10, pady=(6, 0))
+        self.upd_btn = tk.Button(upd, command=self.toggle_update, bg="#383A3E", fg="#FFFFFF", relief="flat")
+        self.upd_btn.pack(side="right", padx=4)
+        self.upd_lbl = tk.Label(upd, text="", bg=ui.BG, fg="#F2C14E", font=ui.FONT_B)
+        self.upd_lbl.pack(side="left")
+        self.show_update()
         frame = tk.Frame(self, bg=ui.PANEL)
         frame.pack(fill="both", expand=True, padx=10, pady=8)
         cols = ("short", "cmd", "title", "kind", "desc")
@@ -52,11 +60,15 @@ class HelpWindow(ui.BaseWindow):
                         ("desc", "설명", 460)):
             tree.heading(c, text=t)
             tree.column(c, width=w, anchor="center" if c == "short" else "w", stretch=(c == "desc"))
-        group = None
+        cat = group = None
         for k, v in registry.COMMANDS.items():
+            if v["category"] != cat:  # 큰 분류 머리줄(iid 없음 — 누르기·두 번 누르기에서 명령이 아니라 무시된다)
+                cat = v["category"]
+                n = sum(1 for x in registry.COMMANDS.values() if x["category"] == cat)
+                tree.insert("", "end", values=("", "", "■ %s (%d)" % (cat, n), "", ""))
             if v["group"] != group:
                 group = v["group"]
-                tree.insert("", "end", values=("", "", "── " + group, "", ""))
+                tree.insert("", "end", values=("", "", "   ── " + group, "", ""))
             tree.insert("", "end", iid=k, values=(self.mark(k), "BC" + k, v["title"],
                                                   "대화상자" if v["kind"] == "window" else "도면 선택", v["desc"]))
         sb = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
@@ -67,6 +79,29 @@ class HelpWindow(ui.BaseWindow):
         tree.bind("<Double-1>", lambda e: None if tree.identify_column(e.x) == "#1" else self.open_cmd(tree.focus()))
         self.status("AutoCAD 명령줄에 BCFE처럼 BC를 붙여 입력합니다. 단축 이름을 활성화한 명령은 FE로도 실행됩니다. "
                     "더블 클릭하면 해당 명령의 대화상자 또는 설정이 열립니다. AutoCAD에서 BCON(겹치는 이름 제외 모두 활성화)과 BCOFF(모두 해제) 명령으로도 바꿀 수 있습니다.")
+
+    def show_update(self):
+        import threading
+        from skills.common import update
+        on = update.enabled()
+        self.upd_btn.configure(text="새 버전 알림 끄기" if on else "새 버전 알림 켜기")
+        self.upd_lbl.configure(text="" if on else "새 버전 알림이 꺼져 있습니다.")
+        if on:
+            box = []  # 확인 결과 — tk는 다른 스레드에서 만지지 않고 창 쪽에서 가져다 쓴다
+            threading.Thread(target=lambda: box.append(update.notice()), daemon=True).start()
+
+            def poll(n=0):
+                if box:
+                    if update.enabled():
+                        self.upd_lbl.configure(text=box[0])
+                elif n < 50:  # 최대 10초 기다린다
+                    self.after(200, poll, n + 1)
+            self.after(200, poll)
+
+    def toggle_update(self):
+        from skills.common import update
+        update.set_enabled(not update.enabled())
+        self.show_update()
 
     def mark(self, k):
         return ON if k in self.short else OFF

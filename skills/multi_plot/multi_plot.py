@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
 """
-CAD Multi Plotter (다중 플롯 유틸리티) - BC.0.6.1 (MCP 패키지 버전과 같게)
+CAD Multi Plotter (다중 플롯 유틸리티) - BC.0.7.0 (MCP 패키지 버전과 같게)
 =========================================================
 오토캐드(AutoCAD) 및 호환 CAD에서 모형(Model) 공간의 다중 도곽(블록·사각 폴리라인·수동 영역)을
 자동 인식·정렬하여 일괄 PDF 변환 또는 프린터로 다중 출력하는 독립 GUI 도구입니다.
@@ -1591,7 +1591,7 @@ class CADMultiPlotterApp(tk.Tk):
         try:
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(cfg, f, ensure_ascii=False, indent=2)
-            self.var_status.set("현재 인쇄 설정이 config.json에 저장되었습니다.")
+            self.var_status.set("현재 인쇄 설정이 설정 파일(MPL.json)에 저장되었습니다.")
         except Exception as e:
             logging.error(f"설정 저장 실패: {e}")
 

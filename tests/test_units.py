@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""AutoCAD 없이 도는 계산 시험(측점·삼각망·DDGP 계획선·CSAR 배치).
+"""AutoCAD 없이 도는 계산 시험(측점·삼각망·DDGP 계획선·CSAR 배치·run_lisp 입력 대기 막기·LISP 주석 나누기).
 
 실행: <python> -X utf8 tests\\test_units.py   끝에 "FAIL: []"이면 통과.
 """
@@ -104,5 +104,46 @@ check("LISP 함수 이름 중복 없음", not _dup, _dup)
 # 좌표 소수 표기: 사사오입(보이는 10진 값 기준), 끝 0 유지
 _f = [C.fmt(7.125, 2), C.fmt(2.675, 2), C.fmt(100, 4), C.fmt(110.5, 0), C.fmt(-3, 2), C.fmt(1234567.12345, 4)]
 check("좌표 소수 사사오입", _f == ["7.13", "2.68", "100.0000", "111", "-3.00", "1234567.1235"], _f)
+
+# run_lisp 입력 대기 함수·고르는 ssget 막기(읽기 함수·고르지 않는 모드·문자열·주석 안은 통과)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
+import validators as V  # noqa: E402
+_cases = {
+    '(getpoint "x")': 1, '(command "_.LINE" "0,0" "1,1" "")': 1, "(mapcar 'getpoint l)": 1, "(entsel)": 1,
+    '(command-s "X")': 1, "(ssget)": 1, "(ssget '((0 . \"LINE\")))": 1, '(ssget ":S")': 1,
+    '(ssget (list (cons 0 "LINE")))': 1, '(getvar "CLAYER")': 0, "(vla-get-Layer o)": 0, '(princ "getpoint")': 0,
+    "; (getpoint)" + chr(10) + "(princ)": 0, '(ssget "_X")': 0, "(ssget \"_X\" '((0 . \"LINE\")))": 0, '(ssget "_W" p1 p2)': 0,
+    "(ssget p1)": 0, "(defun mycommand () 1)": 0, "(sssget)": 0,
+}
+
+
+def _blocked(code):
+    try:
+        V.check_interactive(code)
+        return 0
+    except ValueError:
+        return 1
+
+
+_bad = [(c, w) for c, w in _cases.items() if _blocked(c) != w]
+check("run_lisp 입력 대기 함수 막기", not _bad, _bad)
+
+# 긴 LISP 나누기·괄호 깊이 검사: 주석 안 괄호는 세지 않는다
+from skills.common import lisplib as LL  # noqa: E402
+_body = "(princ 1) ; 주석 (괄호" + chr(10) + "(setq a 1)" * 20
+_parts = LL.split_forms(_body, 30)
+check("주석 안 괄호가 있어도 식 경계에서 나눔", len(_parts) > 1 and "".join(_parts) == _body, [len(x) for x in _parts])
+try:
+    LL.check_depth("(princ ;| 블록 ( |; 1)", "t")
+    check("블록 주석 안 괄호는 세지 않음", True)
+except LL.LispSourceError as _e:
+    check("블록 주석 안 괄호는 세지 않음", False, _e)
+_caught = 0
+for _src in ("(a))", '(a "x)', "(a ;| x"):
+    try:
+        LL.check_depth("x" + chr(10) + _src, "t")
+    except LL.LispSourceError:
+        _caught += 1
+check("괄호·문자열·블록 주석 안 닫힘 잡음", _caught == 3, _caught)
 
 print("FAIL:", FAIL)

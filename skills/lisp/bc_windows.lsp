@@ -15,6 +15,18 @@
 (defun c:GSE () (bc:open-window "GSE") (princ))  ; 종단 계획고 조회·추출
 (defun c:CFB () (bc:open-window "CFB") (princ))  ; 횡단 지반선을 야장 엑셀로
 (defun c:EWT () (bc:open-window "EWT") (princ))  ; 토적표 블록 값 엑셀로 모으기
+(defun c:CEX () (bc:open-window "CEX") (princ))  ; 객체 좌표 출력
+(defun c:RCE () (bc:open-window "RCE") (princ))  ; 순번 붙여 좌표 출력
+(defun c:CIM () (bc:open-window "CIM") (princ))  ; 좌표 목록으로 작도
+(defun c:DSTA () (bc:open-window "DSTA") (princ))  ; 선형 측점 표기
+(defun c:DIBC () (bc:open-window "DIBC") (princ))  ; 측점별 이격 거리 산정
+(defun c:HWLI () (bc:open-window "HWLI") (princ))  ; 측점 값 보간(기본→실시설계)
+(defun c:DRRE () (bc:open-window "DRRE") (princ))  ; 호안 전개도 작도
+(defun c:DCEM () (bc:open-window "DCEM") (princ))  ; 횡단 EL 눈금 표시
+(defun c:DDGP () (bc:open-window "DDGP") (princ))  ; 횡단 계획선 일괄 작도
+(defun c:RCSE () (bc:open-window "RCSE") (princ))  ; 평면 대횡단 작성
+(defun c:CSAR () (bc:open-window "CSAR") (princ))  ; 횡단면 도곽 배치
+(defun c:HWLM () (bc:open-window "HWLM") (princ))  ; 횡단 계획홍수위 일괄 표기
 (defun c:CL () (bc:open-window "CL") (princ))  ; 선 길이 표기
 (defun c:QCL () (bc:open-window "QCL") (princ))  ; 선 길이 바로 표기
 (defun c:TLAE () (bc:open-window "TLAE") (princ))  ; 객체 길이·면적 합산 조회
@@ -28,24 +40,12 @@
 (defun c:JJJ () (bc:open-window "JJJ") (princ))  ; 맞닿은 선 폴리선으로 잇기
 (defun c:CPL () (bc:open-window "CPL") (princ))  ; 폴리선 유형 변환(2D·3D)
 (defun c:FTF () (bc:open-window "FTF") (princ))  ; 누락 글꼴 대체
-(defun c:CEX () (bc:open-window "CEX") (princ))  ; 객체 좌표 출력
-(defun c:RCE () (bc:open-window "RCE") (princ))  ; 순번 붙여 좌표 출력
-(defun c:CIM () (bc:open-window "CIM") (princ))  ; 좌표 목록으로 작도
-(defun c:TTE () (bc:open-window "TTE") (princ))  ; 문자 값 엑셀에 넣기
-(defun c:DSTA () (bc:open-window "DSTA") (princ))  ; 선형 측점 표기
-(defun c:DIBC () (bc:open-window "DIBC") (princ))  ; 측점별 이격 거리 산정
-(defun c:HWLI () (bc:open-window "HWLI") (princ))  ; 측점 값 보간(기본→실시설계)
-(defun c:DRRE () (bc:open-window "DRRE") (princ))  ; 호안 전개도 작도
-(defun c:DCEM () (bc:open-window "DCEM") (princ))  ; 횡단 EL 눈금 표시
-(defun c:DDGP () (bc:open-window "DDGP") (princ))  ; 횡단 계획선 일괄 작도
-(defun c:RCSE () (bc:open-window "RCSE") (princ))  ; 평면 대횡단 작성
-(defun c:CSAR () (bc:open-window "CSAR") (princ))  ; 횡단면 도곽 배치
-(defun c:HWLM () (bc:open-window "HWLM") (princ))  ; 횡단 계획홍수위 일괄 표기
 (defun c:CTS () (bc:open-window "CTS") (princ))  ; 문자 뒤 그림자 만들기
 (defun c:RET () (bc:open-window "RET") (princ))  ; 철근 상세 읽어 재료표 그리기
 (defun c:RCHK () (bc:open-window "RCHK") (princ))  ; 구조도·상세도 철근 대조
 (defun c:ADD () (bc:open-window "ADD") (princ))  ; 문자 속 숫자 사칙연산
 (defun c:INN () (bc:open-window "INN") (princ))  ; ? 자리 일련번호 매기기
+(defun c:TTE () (bc:open-window "TTE") (princ))  ; 문자 값 엑셀에 넣기
 (defun c:MUIN () (bc:open-window "MUIN") (princ))  ; 여러 도면 원래 좌표로 불러오기
 (defun c:CALC () (bc:open-window "CALC") (princ))  ; 도면 값 계산기
 (defun c:MPL () (bc:open-window "MPL") (princ))  ; 도곽별 일괄 출력
@@ -58,6 +58,7 @@
 (defun c:BCHELP ()
   (bc:open-window "BCHELP")
   (princ "\n[BC] 명령 목록 (F2로 전체 보기)")
+  (princ "\n■ 토목 (53)")
   (princ "\n  ── EL")
   (princ "\n  BCFE    기준 EL 대비 위치 EL 표기")
   (princ "\n  BCFW    측구 EL 표기")
@@ -85,21 +86,6 @@
   (princ "\n  BCGSE   종단 계획고 조회·추출 (대화상자)")
   (princ "\n  BCCFB   횡단 지반선을 야장 엑셀로 (대화상자)")
   (princ "\n  BCEWT   토적표 블록 값 엑셀로 모으기 (대화상자)")
-  (princ "\n  ── 수량·표")
-  (princ "\n  BCCL    선 길이 표기 (대화상자)")
-  (princ "\n  BCQCL   선 길이 바로 표기 (대화상자)")
-  (princ "\n  BCTLAE  객체 길이·면적 합산 조회 (대화상자)")
-  (princ "\n  BCHAR   해치 유형별 면적표 작성 (대화상자)")
-  (princ "\n  BCSEAT  닫힌 객체 면적표 작성 (대화상자)")
-  (princ "\n  BCDMT   삼각형 분할 구적도 작성 (대화상자)")
-  (princ "\n  BCCTE   도면 표를 엑셀로 옮기기 (대화상자)")
-  (princ "\n  BCETC   엑셀 범위를 도면 표로 (대화상자)")
-  (princ "\n  ── 정리")
-  (princ "\n  BCDDE   동일 중복 객체 정리 (대화상자)")
-  (princ "\n  BCDOE   중첩선 정리·일직선 병합 (대화상자)")
-  (princ "\n  BCJJJ   맞닿은 선 폴리선으로 잇기 (대화상자)")
-  (princ "\n  BCCPL   폴리선 유형 변환(2D·3D) (대화상자)")
-  (princ "\n  BCFTF   누락 글꼴 대체 (대화상자)")
   (princ "\n  ── 좌표")
   (princ "\n  BCXY    좌표 문자 표기")
   (princ "\n  BCZBC   경계 좌표표 작성")
@@ -107,7 +93,6 @@
   (princ "\n  BCCEX   객체 좌표 출력 (대화상자)")
   (princ "\n  BCRCE   순번 붙여 좌표 출력 (대화상자)")
   (princ "\n  BCCIM   좌표 목록으로 작도 (대화상자)")
-  (princ "\n  BCTTE   문자 값 엑셀에 넣기 (대화상자)")
   (princ "\n  ── 선형")
   (princ "\n  BCDCP   두 선의 중심선 작도")
   (princ "\n  BCDCEN  원·호·두 선 중심선 표시")
@@ -134,6 +119,22 @@
   (princ "\n  BCRCSE  평면 대횡단 작성 (대화상자)")
   (princ "\n  BCCSAR  횡단면 도곽 배치 (대화상자)")
   (princ "\n  BCHWLM  횡단 계획홍수위 일괄 표기 (대화상자)")
+  (princ "\n■ 도면 작업 (41)")
+  (princ "\n  ── 수량·표")
+  (princ "\n  BCCL    선 길이 표기 (대화상자)")
+  (princ "\n  BCQCL   선 길이 바로 표기 (대화상자)")
+  (princ "\n  BCTLAE  객체 길이·면적 합산 조회 (대화상자)")
+  (princ "\n  BCHAR   해치 유형별 면적표 작성 (대화상자)")
+  (princ "\n  BCSEAT  닫힌 객체 면적표 작성 (대화상자)")
+  (princ "\n  BCDMT   삼각형 분할 구적도 작성 (대화상자)")
+  (princ "\n  BCCTE   도면 표를 엑셀로 옮기기 (대화상자)")
+  (princ "\n  BCETC   엑셀 범위를 도면 표로 (대화상자)")
+  (princ "\n  ── 정리")
+  (princ "\n  BCDDE   동일 중복 객체 정리 (대화상자)")
+  (princ "\n  BCDOE   중첩선 정리·일직선 병합 (대화상자)")
+  (princ "\n  BCJJJ   맞닿은 선 폴리선으로 잇기 (대화상자)")
+  (princ "\n  BCCPL   폴리선 유형 변환(2D·3D) (대화상자)")
+  (princ "\n  BCFTF   누락 글꼴 대체 (대화상자)")
   (princ "\n  ── 수정")
   (princ "\n  BCXYB   X·Y 축척 개별 변환")
   (princ "\n  BCART   문자 정렬점·줄 맞추기")
@@ -143,6 +144,7 @@
   (princ "\n  BCADD   문자 속 숫자 사칙연산 (대화상자)")
   (princ "\n  BCINN   ? 자리 일련번호 매기기 (대화상자)")
   (princ "\n  BCCR    문자를 사각형 가운데로 정렬")
+  (princ "\n  BCTTE   문자 값 엑셀에 넣기 (대화상자)")
   (princ "\n  ── 레이어")
   (princ "\n  BCLOL   고른 레이어만 켜기")
   (princ "\n  BCLOF   고른 레이어 끄기")

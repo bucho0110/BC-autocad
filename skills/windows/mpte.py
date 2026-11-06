@@ -99,7 +99,12 @@ HELPERS = (
     '    (if (assoc 11 ed) (angle (list 0.0 0.0) (cdr (assoc 11 ed))) (cond ((cdr (assoc 50 ed))) (0.0)))))'
     '  (progn (setq tb (textbox ed) p (cdr (assoc 10 ed)))'
     '   (trans (bc:tb-rot p (/ (+ (caar tb) (caadr tb)) 2.0) (/ (+ (cadar tb) (cadadr tb)) 2.0) (cdr (assoc 50 ed))) e 0))))'
-    '(defun bc:tb-str (s) (vl-string-translate "\\t\\n\\r" "   " s))')
+    '(defun bc:tb-str (s) (vl-string-translate "\\t\\n\\r" "   " s))'
+    # MTEXT 원문(서식 코드 그대로, 250자 넘는 3번 조각 포함) — 줄바꿈·서식 판정은 파이썬 mtext_plain이 한다
+    # 스크립트로 만든 MTEXT는 \P 대신 실제 줄바꿈 글자를 가진 것도 있다 — 결과 한 줄이 깨지지 않게 \P로 바꿔 내보낸다
+    '(defun bc:tb-raw (e / ed s k) (setq ed (entget e) s "")'
+    ' (foreach p ed (if (= (car p) 3) (setq s (strcat s (cdr p))))) (setq s (strcat s (cdr (assoc 1 ed))))'
+    ' (foreach k (list "\\r\\n" "\\n" "\\r") (while (vl-string-search k s) (setq s (vl-string-subst "\\\\P" k s)))) s)')
 
 
 def dump_lisp(names) -> str:
@@ -124,7 +129,36 @@ def dump_lisp(names) -> str:
         ' (setq _p (bc:tb-ctr _e) _ed (entget _e))'
         ' (write-line (strcat (if (= (cdr (assoc 0 _ed)) "MTEXT") "M" "T") _d (cdr (assoc 5 _ed)) _d (cdr (assoc 410 _ed)) _d'
         '  (bc:rtos (car _p) 2 8) _d'
-        '  (bc:rtos (cadr _p) 2 8) _d (bc:tb-str (bc:text-of _e))) _fp))') % nm
+        '  (bc:rtos (cadr _p) 2 8) _d (bc:tb-str (if (= (cdr (assoc 0 _ed)) "MTEXT") (bc:tb-raw _e) (bc:text-of _e)))) _fp))'
+    ) % nm
+
+
+def mtext_plain(raw):
+    """MTEXT 원문 → (본문, 서식 있음). 줄바꿈 \\P는 '\\n'으로, \\\\ \\{ \\}는 그 글자로 둔다.
+    글꼴·색·높이 같은 서식 코드(\\f…; \\C…; \\L 등)나 중괄호 묶음이 있으면 서식 있음(EMTT가 고치지 않는다)."""
+    b = chr(92)
+    out, fmt, i, n = [], False, 0, len(raw)
+    while i < n:
+        c = raw[i]
+        if c == b and i < n - 1:
+            d = raw[i + 1]
+            if d in "Pp":
+                out.append("\n")
+                i += 2
+            elif d in (b, "{", "}"):
+                out.append(d)
+                i += 2
+            elif d in "LlOoKkN":
+                fmt, i = True, i + 2
+            else:
+                j = raw.find(";", i)
+                fmt, i = True, (j + 1 if j >= 0 else i + 2)
+        elif c in "{}":
+            fmt, i = True, i + 1
+        else:
+            out.append(c)
+            i += 1
+    return "".join(out), fmt
 
 
 def parse(rows):
@@ -142,7 +176,9 @@ def parse(rows):
         elif c[0] == "A" and cur is not None and len(c) >= 4:
             cur["att"].setdefault(c[1].upper(), (c[2].strip(), c[3]))
         elif c[0] in ("T", "M") and len(c) >= 5:
-            texts.append((c[2], float(c[3]), float(c[4]), c[5].strip() if len(c) > 5 else "", c[1], c[0] == "M"))
+            raw = c[5] if len(c) > 5 else ""
+            text, fmt = mtext_plain(raw) if c[0] == "M" else (raw, False)
+            texts.append((c[2], float(c[3]), float(c[4]), text.strip(), c[1], c[0] == "M", fmt))
     return frames, blocks, texts
 
 
@@ -163,11 +199,12 @@ def _space_ok(space, cfg):
 
 
 def collect(frames, blocks, texts, reg, cfg):
-    """→ [{handle, block, space, x, y, values {항목: 값}, targets {항목: [고칠 문자·속성 핸들]}, mtext {MTEXT 핸들}}]
-    (cfg 정렬 순서).
-    영역 안 문자가 여럿이면 위 → 아래, 왼 → 오른 순서로 띄어 잇는다."""
+    """→ [{handle, block, space, x, y, values {항목: 값}, targets {항목: [고칠 문자·속성 핸들]}, mtext {MTEXT 핸들},
+    formatted {서식 있는 MTEXT 핸들}}] (cfg 정렬 순서).
+    영역 안 문자가 여럿이면 위 → 아래, 왼 → 오른 순서로 줄을 바꿔 잇는다(엑셀 칸 안 줄바꿈). MTEXT 줄바꿈도 줄바꿈."""
     regs = {k.upper(): v for k, v in reg["blocks"].items()}
     mtext = {t[4] for t in texts if t[5]}
+    formatted = {t[4] for t in texts if t[6]}
     out = []
     for f in frames:
         if not _space_ok(f["space"], cfg) or f["block"].upper() not in regs:
@@ -176,13 +213,13 @@ def collect(frames, blocks, texts, reg, cfg):
         boxes = [it["box"] for it in items if it["kind"] in ("box", "abox")]
         reach = max([abs(v) for bx in boxes for v in bx] or [0.0]) * max(abs(f["sx"]), abs(f["sy"]), 1e-9) * 1.5
         near = lambda x, y: abs(x - f["x"]) <= reach and abs(y - f["y"]) <= reach  # noqa: E731
-        loc = [(to_local(f, x, y), t, h) for sp, x, y, t, h, _m in texts if sp == f["space"] and near(x, y)]
+        loc = [(to_local(f, x, y), t, h) for sp, x, y, t, h, _m, _f in texts if sp == f["space"] and near(x, y)]
         loc.sort(key=lambda i: (-i[0][1], i[0][0]))
         vals, tg = {}, {}
         for it in items:
             if it["kind"] == "box":
                 hit = [(t, h) for p, t, h in loc if _in(it["box"], p)]
-                vals[it["name"]] = " ".join(t for t, _h in hit)
+                vals[it["name"]] = "\n".join(t for t, _h in hit)
                 tg[it["name"]] = [h for _t, h in hit]
             elif it["kind"] == "attr":
                 v, h = f["att"].get(it["tag"].upper(), ("", None))
@@ -191,11 +228,12 @@ def collect(frames, blocks, texts, reg, cfg):
                 hit = [b["att"][it["tag"].upper()] for b in blocks
                        if b["space"] == f["space"] and it["tag"].upper() in b["att"] and near(b["x"], b["y"])
                        and _in(it["box"], to_local(f, b["x"], b["y"]))]
-                vals[it["name"]] = " ".join(v for v, _h in hit)
+                vals[it["name"]] = "\n".join(v for v, _h in hit)
                 tg[it["name"]] = [h for _v, h in hit]
+        mine = {h for hs in tg.values() for h in hs}
         out.append({"handle": f["handle"], "block": f["block"], "space": f["space"], "x": f["x"], "y": f["y"],
                     "size": reach / 1.5, "values": vals, "targets": tg,
-                    "mtext": {h for hs in tg.values() for h in hs if h in mtext}})
+                    "mtext": mine & mtext, "formatted": mine & formatted})
     return sort_frames(out, cfg["정렬"])
 
 
@@ -282,7 +320,7 @@ def cell_str(v):
         return ""
     if isinstance(v, float):
         return ("%d" % v) if v == int(v) else repr(v)
-    return str(v).strip()
+    return str(v).replace("\r\n", "\n").replace("\r", "\n").strip()  # 칸 안 줄바꿈은 '\n' 하나로
 
 
 # ---------------------------------------------------------------- MCP

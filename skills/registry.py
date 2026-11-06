@@ -1,5 +1,5 @@
 # Copyright © 2026 BUCHO — BUCHO 무료 공개 라이선스 (https://github.com/bucho0110/BC-autocad)
-"""스킬 명령 목록 — AutoCAD 명령 이름, 설명, 종류, 설정 항목의 단일 원본.
+"""BC 명령 목록 — AutoCAD에서 바로 쓰는 전용 명령의 이름, 설명, 종류, 큰 분류·그룹, 설정 항목의 단일 원본.
 
 종류
 - "lisp":   AutoCAD에서 바로 찍는 명령(skills/lisp). 설정(S)을 고르면 설정 창이 뜬다.
@@ -226,8 +226,6 @@ COMMANDS = {
             "desc": "점을 찍을 때마다 순번과 좌표를 엑셀에 쌓고 도면에 순번을 표기."},
     "CIM": {"title": "좌표 목록으로 작도", "group": "좌표", "kind": "window",
             "desc": "엑셀 선택 범위나 텍스트 파일 좌표로 폴리선·점·문자·블록을 그린다."},
-    "TTE": {"title": "문자 값 엑셀에 넣기", "group": "좌표", "kind": "window",
-            "desc": "고른 문자·치수 값·블록 속성 값을 정렬 순서대로 엑셀 선택 셀부터 넣는다. 여러 묶음은 옆 열로."},
     # ---------------------------------------------------------------- 선형·측점
     "DCP": {"title": "두 선의 중심선 작도", "group": "선형", "kind": "lisp",
             "desc": "좌안·우안 제방선처럼 나란한 두 선(폴리선) 사이의 중심선 폴리선을 그린다.",
@@ -446,6 +444,8 @@ COMMANDS = {
             "desc": "문자 내용의 ? 자리를 숫자·알파벳·16진수로 늘려 가며 복사하거나 기존 문자(블록 안·속성 포함)를 고친다."},
     "CR": {"title": "문자를 사각형 가운데로 정렬", "group": "수정", "kind": "lisp",
            "desc": "고른 문자들을 두 점으로 정한 사각형(또는 고른 객체)의 가운데로 옮겨 가운데 정렬한다. 문자 사이 간격은 그대로."},
+    "TTE": {"title": "문자 값 엑셀에 넣기", "group": "수정", "kind": "window",
+            "desc": "고른 문자·치수 값·블록 속성 값을 정렬 순서대로 엑셀 선택 셀부터 넣는다. 여러 묶음은 옆 열로."},
     # ---------------------------------------------------------------- 레이어
     "LOL": {"title": "고른 레이어만 켜기", "group": "레이어", "kind": "lisp",
             "desc": "고른 객체가 있는 레이어만 보이게 하고 나머지는 끈다."},
@@ -484,6 +484,20 @@ COMMANDS = {
 }
 
 
+# 큰 분류 → 그룹(이 순서로 목록을 보인다: BCHELP 창·명령줄 목록·skill_list·README)
+CATEGORIES = {
+    "토목": ["EL", "지형", "종단·횡단", "좌표", "선형", "사면", "하천 횡단"],
+    "도면 작업": ["수량·표", "정리", "수정", "레이어", "유틸리티", "도곽"],
+}
+GROUP_ORDER = [g for gs in CATEGORIES.values() for g in gs]
+GROUP_CATEGORY = {g: c for c, gs in CATEGORIES.items() for g in gs}
+_missing = {v["group"] for v in COMMANDS.values()} - set(GROUP_ORDER)
+assert not _missing, "큰 분류에 없는 그룹: %s" % _missing
+COMMANDS = dict(sorted(COMMANDS.items(), key=lambda kv: GROUP_ORDER.index(kv[1]["group"])))  # 그룹 안 순서는 그대로
+for _v in COMMANDS.values():
+    _v["category"] = GROUP_CATEGORY[_v["group"]]
+
+
 def fields(cmd: str):
     return COMMANDS[cmd.upper()].get("fields") or []
 
@@ -497,5 +511,5 @@ def defaults(cmd: str) -> dict:
 
 def table():
     """MCP·README용 요약 표."""
-    return [{"command": k, "title": v["title"], "group": v["group"], "kind": v["kind"], "desc": v["desc"]}
-            for k, v in COMMANDS.items()]
+    return [{"command": k, "title": v["title"], "category": v["category"], "group": v["group"], "kind": v["kind"],
+             "desc": v["desc"]} for k, v in COMMANDS.items()]

@@ -43,7 +43,7 @@ try:
             '(write-line (strcat "토목" _d (if bc:rtos "lib" "nolib")) _fp)')
     r = B.build(code, a)
     check("새 도면 작도·저장", os.path.isfile(a) and r["entities"] == 3, r)
-    check("결과 줄(한글·토목 함수 불러옴)", r["lines"] == ["토목\tlib"], r["lines"])
+    check("결과 줄(한글·BC 명령 함수 불러옴)", r["lines"] == ["토목\tlib"], r["lines"])
     check("시간", r["seconds"] < 60, r["seconds"])
     pv = r.get("preview")
     check("PNG 미리보기 출력", bool(pv) and os.path.isfile(pv) and os.path.getsize(pv) > 1000, r)

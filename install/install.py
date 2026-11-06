@@ -102,7 +102,7 @@ def check_acad_version(py):
         return True
     if major < 24:
         say("[오류] AutoCAD 2021 이상이 필요합니다. 현재 실행 중인 AutoCAD는 2020 이하 버전입니다(버전 %s)." % ver)
-        say("       2020 이하는 LISP의 UTF-8 지원이 없어 토목 명령과 MCP가 동작하지 않으므로 설치를 중단합니다.")
+        say("       2020 이하는 LISP의 UTF-8 지원이 없어 BC 명령과 MCP가 동작하지 않으므로 설치를 중단합니다.")
         return False
     return True
 
@@ -113,7 +113,7 @@ def write_loader(py):
     if not os.path.exists(pyw):
         pyw = py
     os.makedirs(DATA, exist_ok=True)
-    text = """;;; bc_autocad.lsp — BC AutoCAD 스킬 명령 불러오기 (install.py가 이 PC에 맞춰 만든 파일)
+    text = """;;; bc_autocad.lsp — BC 명령 불러오기 (install.py가 이 PC에 맞춰 만든 파일)
 ;;; 플러그인 폴더(BC_AutoCAD.bundle)가 AutoCAD를 켤 때·도면을 열 때마다 불러온다. 급하면 APPLOAD로 직접.
 (vl-load-com)
 (setq *bc-root* "{root}")
@@ -124,8 +124,8 @@ def write_loader(py):
     (load (strcat *bc-root* "/skills/lisp/bc_core.lsp"))
     (foreach f (vl-sort (vl-remove "bc_core.lsp" bc:*files*) '<)
       (load (strcat *bc-root* "/skills/lisp/" f)))
-    (princ "\\n[BC] AutoCAD 스킬 명령을 불러왔습니다. 목록: BCHELP"))
-  (princ "\\n[BC] 스킬 폴더를 찾지 못했습니다 — install.py를 다시 실행하세요."))
+    (princ "\\n[BC] BC 명령을 불러왔습니다. 목록: BCHELP"))
+  (princ "\\n[BC] BC 명령 폴더(skills)를 찾지 못했습니다 — install.cmd를 다시 실행하십시오."))
 (princ)
 """.format(root=slash(ROOT), pyw=slash(pyw))
     for path in (LOADER, BUNDLE_LSP):
@@ -142,15 +142,15 @@ def write_bundle_xml():
     """PackageContents.xml — AutoCAD 2021(R24.0) 이상, 도면마다(PerDocument) 켤 때 불러온다.
     2021부터 LISP이 UTF-8 .lsp(LISPSYS=1)와 (open … "utf8")을 지원한다. 2020 이하는 이 둘이 없어 대상에서 뺀다."""
     xml = """<?xml version="1.0" encoding="utf-8"?>
-<ApplicationPackage SchemaVersion="1.0" AppVersion="0.6.1" ProductType="Application" Name="BC AutoCAD"
-    Description="BC AutoCAD 토목 명령(BCFE·BCXY·BCMPL…, 목록 BCHELP)" Author="BC"
+<ApplicationPackage SchemaVersion="1.0" AppVersion="0.7.0" ProductType="Application" Name="BC AutoCAD"
+    Description="BC 명령(전용 명령 BCFE·BCXY·BCMPL…, 목록 BCHELP)" Author="BC"
     ProductCode="{pc}" UpgradeCode="{uc}">
   <CompanyDetails Name="BC" />
   <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.0" />
   <Components Description="LISP">
     <RuntimeRequirements OS="Win64" Platform="AutoCAD*" SeriesMin="R24.0" />
-    <ComponentEntry AppName="BCAutoCAD" Version="0.6.1" ModuleName="./Contents/bc_autocad.lsp"
-        AppDescription="BC AutoCAD 스킬 명령 불러오기" LoadOnCommandInvocation="False" LoadOnAutoCADStartup="True"
+    <ComponentEntry AppName="BCAutoCAD" Version="0.7.0" ModuleName="./Contents/bc_autocad.lsp"
+        AppDescription="BC 명령 불러오기" LoadOnCommandInvocation="False" LoadOnAutoCADStartup="True"
         PerDocument="True" />
   </Components>
 </ApplicationPackage>
