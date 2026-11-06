@@ -38,7 +38,7 @@ class HelpWindow(ui.BaseWindow):
         self.short = [n for n in S.load_short() if n in registry.COMMANDS]
         top = tk.Frame(self, bg=ui.BG)
         top.pack(fill="x", padx=10, pady=(8, 0))
-        tk.Label(top, text="첫 칸 ☑: 단축 이름(FE)도 함께 사용합니다. 기본값은 BC 접두어 이름(BCFE)만 사용합니다.", bg=ui.BG, fg=ui.FG,
+        tk.Label(top, text="첫 칸 ☑: 단축 이름(FE)도 사용 · 기본값: BC 이름(BCFE)만", bg=ui.BG, fg=ui.FG,
                  font=ui.FONT).pack(side="left")
         tk.Button(top, text="모두 해제 (BC 이름만)", command=self.all_off, bg="#383A3E", fg="#FFFFFF",
                   relief="flat").pack(side="right", padx=4)
@@ -77,8 +77,8 @@ class HelpWindow(ui.BaseWindow):
         sb.pack(side="right", fill="y")
         tree.bind("<Button-1>", self.on_click)
         tree.bind("<Double-1>", lambda e: None if tree.identify_column(e.x) == "#1" else self.open_cmd(tree.focus()))
-        self.status("AutoCAD 명령줄에 BCFE처럼 BC를 붙여 입력합니다. 단축 이름을 활성화한 명령은 FE로도 실행됩니다. "
-                    "더블 클릭하면 해당 명령의 대화상자 또는 설정이 열립니다. AutoCAD에서 BCON(겹치는 이름 제외 모두 활성화)과 BCOFF(모두 해제) 명령으로도 바꿀 수 있습니다.")
+        # 처음 열 때 한 줄에 다 보이게 짧게 — 자세한 설명은 README 4-1절
+        self.status("BC를 붙여 실행(BCFE) · 두 번 클릭: 창·설정 열기 · 단축 이름 일괄: BCON(중복 제외 켜기)/BCOFF(끄기)")
 
     def show_update(self):
         import threading
@@ -147,15 +147,15 @@ class HelpWindow(ui.BaseWindow):
         self.short = new
         for k in registry.COMMANDS:
             self.tree.set(k, "short", self.mark(k))
-        msg = "단축 이름 %d개가 활성화되었습니다. " % len(new)
+        msg = "단축 이름 %d개 사용 · " % len(new)
         if cad_ok:
             try:
                 self.acad.lisp('(bc:short-apply) (write-line "ok" _fp)', 60)
-                msg += "현재 도면에 적용했습니다(이미 열려 있는 다른 도면은 다시 열 때 적용됩니다)."
+                msg += "현재 도면에 적용(다른 도면은 다시 열 때)"
             except Exception as e:  # noqa: BLE001
-                msg += "AutoCAD에 적용하지 못했습니다. 도면을 다시 열면 적용됩니다. (%s)" % e
+                msg += "도면을 다시 열면 적용 (%s)" % e
         else:
-            msg += "AutoCAD에서 도면을 다시 열면 적용됩니다."
+            msg += "도면을 다시 열면 적용"
         self.status(msg)
 
     def open_cmd(self, cmd):
